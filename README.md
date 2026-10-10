@@ -32,7 +32,6 @@ flowchart TD
   B --> C[Deterministic detection engine]
   C --> D[Evidence-linked alerts]
   V --> R[Deterministic JSON and Markdown reports]
-  V --> R[Deterministic JSON and Markdown reports]
   D --> E[Explainable correlation service]
   E --> F[(SQLite schema v3)]
   F --> G[Framework-independent dashboard services]
