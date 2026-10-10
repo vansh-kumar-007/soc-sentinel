@@ -4,60 +4,69 @@ Last updated: 2026-10-10
 
 ## Current milestone
 
-**Phase 2 — Event Ingestion and Normalization: COMPLETE**
+**Phase 3 — Deterministic Detection Engineering Engine: implementation in progress.**
 
-Phase 2 is implemented and verified by GitHub Actions on Python 3.11, 3.12, and 3.13. Phase 3 has not been started.
+Phase 2 is complete and verified. Phase 3 source code, initial YAML rules, tests, and documentation have been committed to `main`. Phase 3 remains pending until the current head passes the full GitHub Actions matrix and the final remote tree is audited.
 
 ## Phase checklist
 
-- [x] Pydantic normalized event schema for authentication, process, and network records.
-- [x] UTC timestamp normalization and rejection of timezone-naive timestamps.
-- [x] IPv4/IPv6 validation and canonicalization.
-- [x] Optional process metadata, source provenance, and evaluation-only scenario metadata.
-- [x] Streaming line-by-line JSONL parser with line-numbered issues and a 1 MiB per-line limit.
-- [x] Strict mode aborts on the first invalid record; non-strict mode continues and reports issues.
-- [x] Duplicate IDs within one file are rejected and separately counted.
-- [x] Schema-version-2 SQLite migration from the Phase 1 schema.
-- [x] Parameterized, explicitly transactional SQLite inserts and unique event IDs.
-- [x] CLI `ingest --input PATH --db PATH [--strict]`.
-- [x] Synthetic JSONL fixture and schema/database/CLI tests.
-- [x] Event schema, database schema, architecture, and README usage documented.
-- [x] GitHub Actions matrix passed pytest, Ruff lint, Ruff format, and mypy on Python 3.11, 3.12, and 3.13.
-- [x] Remote repository tree and current branch state re-audited.
-- [ ] Phase 3 — deterministic detection rules and evidence-linked alerts.
+### Phase 1 — Foundation
+- [x] Python package, CLI, SQLite bootstrap, docs, tests, and CI matrix.
 
-## Implemented behavior
+### Phase 2 — Event ingestion and normalization
+- [x] Pydantic event contract and UTC/IP validation.
+- [x] Streaming JSONL parsing with line-numbered issues and strict/non-strict modes.
+- [x] SQLite schema version 2 migration and transactional event persistence.
+- [x] Ingestion CLI and synthetic fixtures.
+- [x] GitHub Actions passed pytest, Ruff lint/format, and mypy on Python 3.11, 3.12, and 3.13.
 
-- Required fields: event ID, timezone-aware timestamp, event type, host ID, action, and source ID.
-- Authentication requires username; process requires process metadata; network requires at least one valid IP.
-- Scenario ID/label metadata is preserved only for evaluation; it is not detection evidence.
-- Non-strict mode skips blank lines, reports malformed JSON/schema, oversized records, and duplicate input IDs, and continues parsing.
-- Strict mode aborts at the first malformed or duplicate record before initializing or writing the database.
-- Event IDs are the unique storage key. Existing IDs are skipped and counted, never overwritten.
-- Schema version 1 migrates in-place to version 2; future versions are rejected. Migration failure rolls back schema changes and version metadata.
-- Unexpected event insert failures abort and roll back all event inserts in the batch.
-- `soc-sentinel ingest --input data/samples/authentication.jsonl --db data/soc-sentinel.sqlite3` is the documented local synthetic-data path.
+### Phase 3 — Deterministic detection engineering
+- [x] Typed, data-only YAML rule schema with safe loading and strict unknown-field rejection.
+- [x] Allow-listed normalized fields/operators and field-type compatibility checks.
+- [x] Deterministic match, threshold, and two-stage sequence strategies.
+- [x] Evidence-linked alerts with stable IDs, grouping context, severity, rationale, and optional ATT&CK references.
+- [x] DET-001 authentication failure burst rule.
+- [x] DET-002 failed-login then success sequence rule.
+- [x] DET-003 encoded PowerShell command-line indicator rule.
+- [x] Rule validation and detection CLI commands, including JSON output.
+- [x] Positive/negative synthetic tests for rules, thresholds, ordering, windows, grouping, process lookalikes, duplicate events, and scenario-label independence.
+- [x] Rule format, detection catalog, architecture, and README usage documentation.
+- [ ] Final GitHub Actions matrix passes pytest, Ruff lint/format, and mypy on Python 3.11, 3.12, and 3.13.
+- [ ] Audit the final current-head commit, branch state, and verification links.
+
+## Rule behavior
+
+- `validate-rules --rules rules/` safely loads and validates every shipped YAML rule.
+- `detect --input FILE --rules rules/` evaluates the normalized JSONL records without a database or network service.
+- Conditions are ANDed and use explicit allow-listed operators; arbitrary Python, shell commands, regex, and scenario fields are not supported.
+- Missing optional fields do not match, including inequality and negative-membership operators.
+- DET-001 requires five failed logins for the same username/source IP within 600 seconds.
+- DET-002 requires at least three failed logins followed strictly later by success for the same username/source IP within 600 seconds.
+- DET-003 flags PowerShell-family process names whose command line contains the encoded-command switch. It is a heuristic indicator, not a malware verdict.
+- Alert IDs are deterministic from rule ID, grouping context, and ordered evidence event IDs. The engine is stateless and does not persist alert lifecycle state.
+- Scenario labels are never consulted by the detection engine.
 
 ## Verification record
 
-- **Implementation commit:** `c736686eff8e7d7110b6bb186d04db7c2d44ab32`. **Final documentation commit:** `7bd17993a3d638663f34bfa0f95e63676f299d63`.
-- **GitHub Actions:** [run #71](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38048965133) completed successfully on the final documented commit.
-- **Matrix:** Python 3.11, 3.12, and 3.13 each passed package installation, pytest (30 tests collected; all passed), `ruff check .`, `ruff format --check .`, and `mypy src tests`.
-- **Local test execution:** GitHub Actions ran the suite against the remote checkout. This environment could not clone GitHub directly, so no claim is made that the whole suite was separately executed in a local container.
-- **Branch:** `main` only. No branches were created or deleted; no force-push or history rewrite occurred.
-- **Cost:** no paid service, trial, API key, external database, or cloud resource was used.
+- **Phase 2 acceptance:** [GitHub Actions run #72](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38049101494) passed on Phase 2 commit `a2026b4cc76c6f3bc6a160dd0b65944c3b5c0a33`.
+- **Phase 3 CI:** pending final run for the current `main` head. Intermediate CI run #82 failed one process-rule negative test because the indicator was too broad (`-enc` also matched `-Encoding`). The rule was narrowed to `-EncodedCommand`; do not treat the intermediate failure as final acceptance evidence.
+- **Local test execution:** no claim of a separate local full-suite run; verification will be based on GitHub Actions against the remote checkout.
+- **Branch:** `main` only; no force-push or history rewrite.
+- **Cost:** no paid service, external database, or external API was introduced.
 
 ## Limitations
 
-- The reader reads source lines incrementally and rejects lines larger than 1 MiB, but retains validated events in memory before the single transaction. Memory still scales with accepted event count.
-- The 1 MiB per-line limit bounds each individual input record, not the total file size or total number of accepted events. Future work may add bounded batch commits with explicitly different atomicity semantics.
-- No organizational logs, detection rules, alert correlation, dashboard, or active response were used or implemented in Phase 2.
-- No paid infrastructure or external APIs were introduced.
+- Rule conditions are AND-only; there is no arbitrary OR, regular expression, dynamic code, or shell execution.
+- DET-001 groups by username and source IP, so records without either value are skipped for that rule.
+- DET-002 requires username and source IP to match exactly; it does not incorporate MFA, device identity, geolocation, or session risk. A success after failures does not prove compromise.
+- DET-003 relies on process name and command-line telemetry. Parent process, user context, and hash are not required by the initial rule; command-line data may be absent or truncated.
+- Alert generation is stateless. Identical complete inputs produce stable alert IDs, but there is no persisted alert lifecycle or incident correlation yet.
+- The JSONL parser retains validated events in memory before evaluation. Very large-file streaming detection is future hardening work.
 
 ## Cost and infrastructure
 
-Core processing is local. SQLite comes from Python's standard library; Pydantic is the only new runtime dependency. No cloud resource, trial, payment method, paid API, or external database was used.
+Local-first runtime. SQLite is from Python's standard library; Pydantic and PyYAML are runtime dependencies. No cloud resource, trial, payment method, paid API, or remote database is required.
 
 ## Next step
 
-**Phase 3 — Deterministic Detection Engine.** Define a safe, data-only detection-rule schema with allow-listed operators, deterministic event matching, alert models tied to source event IDs, and positive/negative synthetic tests. Do not use scenario labels as evidence and do not execute rule content dynamically.
+After Phase 3 passes final CI and repository audit, Phase 4 should correlate evidence-linked alerts into incident cases with deterministic entity/time-window rules and an explicit incident lifecycle. Do not start Phase 4 before Phase 3 verification is complete.
