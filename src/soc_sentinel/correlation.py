@@ -29,7 +29,7 @@ class CorrelationPolicy(BaseModel):
     window_seconds: int = Field(default=1800, ge=1, le=604800)
     strategies: list[StrategyName] = Field(min_length=1)
     minimum_shared_entities: int = Field(default=1, ge=1, le=4)
-    allow_transitive: bool = True
+    allow_transitive: bool = False
 
     @model_validator(mode="after")
     def unique_strategies(self) -> CorrelationPolicy:
