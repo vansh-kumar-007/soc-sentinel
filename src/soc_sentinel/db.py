@@ -17,20 +17,22 @@ _SCHEMA_VERSION = 2
 def initialize_database(database_path: str | Path) -> Path:
     """Initialize or migrate a local database to the current schema.
 
-    Phase 1 databases at schema version 1 are migrated forward in-place. The migration
-    to the current schema runs in one transaction. A newer database version is rejected.
+    Existing Phase 1 version-1 databases are migrated forward. Migration DDL and
+    metadata changes run in an explicit SQLite transaction; future versions are rejected.
     """
     path = Path(database_path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(path) as connection:
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("BEGIN")
         connection.execute(
             "CREATE TABLE IF NOT EXISTS schema_metadata "
             "(key TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )
-        rows = connection.execute("SELECT value FROM schema_metadata WHERE key = 'schema_version'").fetchall()
-        if len(rows) > 1:
-            raise RuntimeError("database contains duplicate schema_version metadata")
-        version = int(rows[0][0]) if rows else 0
+        row = connection.execute(
+            "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
+        ).fetchone()
+        version = int(row[0]) if row else 0
         if version > _SCHEMA_VERSION:
             raise RuntimeError(
                 f"database schema version {version} is newer than supported {_SCHEMA_VERSION}"
@@ -46,6 +48,12 @@ def initialize_database(database_path: str | Path) -> Path:
             connection.execute(
                 "UPDATE schema_metadata SET value = '2' WHERE key = 'schema_version'"
             )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
     return path
 
 
@@ -70,9 +78,7 @@ def _migrate_to_v2(connection: sqlite3.Connection) -> None:
         )
         """
     )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp_utc)"
-    )
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp_utc)")
     connection.execute(
         "CREATE INDEX IF NOT EXISTS idx_events_type_timestamp ON events(event_type, timestamp_utc)"
     )
@@ -91,7 +97,9 @@ def insert_events(
     path = initialize_database(database_path)
     inserted = 0
     duplicates = 0
-    with sqlite3.connect(path) as connection:
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("BEGIN")
         for event in events:
             payload = event.model_dump(mode="python")
             cursor = connection.execute(
@@ -122,6 +130,12 @@ def insert_events(
                 inserted += 1
             else:
                 duplicates += 1
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
     return path, inserted, duplicates
 
 
