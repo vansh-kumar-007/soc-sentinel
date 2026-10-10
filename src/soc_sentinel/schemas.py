@@ -109,7 +109,7 @@ class SecurityEvent(BaseModel):
             raise ValueError("must be a valid IPv4 or IPv6 address") from exc
 
     @model_validator(mode="after")
-    def validate_event_shape(self) -> SecurityEvent:
+    def validate_event_shape(self) -> Self:
         if self.event_type == EventType.AUTHENTICATION:
             if self.action not in {EventAction.LOGIN, EventAction.LOGOUT, EventAction.OTHER}:
                 raise ValueError("authentication events require login, logout, or other action")
