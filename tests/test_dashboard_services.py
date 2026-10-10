@@ -107,12 +107,15 @@ def test_alert_and_evidence_detail_includes_correlation_provenance(tmp_path: Pat
     assert detail["correlation_explanations"]
     assert all(item["explanation"] for item in detail["correlation_explanations"])
     assert detail["evidence_events"]
-    assert all(item["provenance"] == "source_telemetry" for item in detail["evidence_events"].values())
+    assert all(
+        item["provenance"] == "source_telemetry" for item in detail["evidence_events"].values()
+    )
     timeline = detail["timeline"]
     assert timeline == sorted(
         timeline,
         key=lambda item: (
-            item["timestamp"], item["kind"],
+            item["timestamp"],
+            item["kind"],
             str(item.get("event_id", item.get("audit_id", item.get("alert_id", "")))),
         ),
     )
@@ -141,7 +144,9 @@ def test_lifecycle_assignment_notes_resolution_reopen_and_stale_conflict(tmp_pat
     with pytest.raises(IncidentError, match="stale incident version"):
         assign_incident_to_analyst(path, incident_id, "stale-writer", version)
     note = add_investigation_note(
-        path, incident_id, "Reviewed synthetic authentication evidence.",
+        path,
+        incident_id,
+        "Reviewed synthetic authentication evidence.",
         expected_version=assigned.version,
     )
     assert note["note"].startswith("Reviewed")
@@ -198,7 +203,8 @@ def test_demo_seed_cli_json_output(tmp_path: Path, capsys: pytest.CaptureFixture
 def test_cli_import_does_not_import_streamlit() -> None:
     subprocess.run(
         [
-            sys.executable, "-c",
+            sys.executable,
+            "-c",
             "import sys; import soc_sentinel.cli; assert 'streamlit' not in sys.modules",
         ],
         check=True,

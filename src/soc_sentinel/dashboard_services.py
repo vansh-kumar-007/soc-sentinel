@@ -14,16 +14,26 @@ from soc_sentinel.db import insert_events
 from soc_sentinel.detection.engine import evaluate_events
 from soc_sentinel.detection.rules import load_rules
 from soc_sentinel.incidents import (
-    Incident, IncidentError, IncidentStatus, ResolutionClassification, add_note,
-    assign_analyst, correlate_and_persist, get_incident,
-    list_incidents, show_incident, update_status,
+    Incident,
+    IncidentError,
+    IncidentStatus,
+    ResolutionClassification,
+    add_note,
+    assign_analyst,
+    correlate_and_persist,
+    get_incident,
+    list_incidents,
+    show_incident,
+    update_status,
 )
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = {"soc_demo": "soc-demo.jsonl", "authentication": "authentication.jsonl"}
 RULE_PROFILES: dict[str, tuple[str, ...] | None] = {
-    "all": None, "authentication": ("DET-001", "DET-002"), "process": ("DET-003",)
+    "all": None,
+    "authentication": ("DET-001", "DET-002"),
+    "process": ("DET-003",),
 }
 
 
@@ -74,10 +84,12 @@ def get_dashboard_summary(database_path: str | Path) -> dict[str, Any]:
         }
         activity = [
             {"date": row["day"], "incidents": row["count"]}
-            for row in reversed(connection.execute(
-                """SELECT substr(created_at,1,10) AS day, COUNT(*) AS count FROM incidents
+            for row in reversed(
+                connection.execute(
+                    """SELECT substr(created_at,1,10) AS day, COUNT(*) AS count FROM incidents
                 GROUP BY substr(created_at,1,10) ORDER BY day DESC LIMIT 30"""
-            ).fetchall())
+                ).fetchall()
+            )
         ]
     except sqlite3.Error as exc:
         raise DashboardServiceError(
@@ -91,7 +103,9 @@ def get_dashboard_summary(database_path: str | Path) -> dict[str, Any]:
     for incident in incidents:
         hosts.update(incident.entities.get("host_id", []))
         users.update(incident.entities.get("username", []))
-    recent = sorted(incidents, key=lambda item: (item.updated_at, item.incident_id), reverse=True)[:8]
+    recent = sorted(incidents, key=lambda item: (item.updated_at, item.incident_id), reverse=True)[
+        :8
+    ]
     severity_rows = [
         {"severity": key, "count": severities.get(key, 0)}
         for key in ("critical", "high", "medium", "low", "informational")
@@ -123,25 +137,44 @@ def get_dashboard_summary(database_path: str | Path) -> dict[str, Any]:
 
 
 def list_dashboard_incidents(
-    database_path: str | Path, *, query: str = "", statuses: set[str] | None = None,
-    severities: set[str] | None = None, assigned_analyst: str = "", host: str = "",
-    username: str = "", observed_from: date | None = None, observed_to: date | None = None,
-    sort_by: str = "last_observed", descending: bool = True, page: int = 1,
+    database_path: str | Path,
+    *,
+    query: str = "",
+    statuses: set[str] | None = None,
+    severities: set[str] | None = None,
+    assigned_analyst: str = "",
+    host: str = "",
+    username: str = "",
+    observed_from: date | None = None,
+    observed_to: date | None = None,
+    sort_by: str = "last_observed",
+    descending: bool = True,
+    page: int = 1,
     page_size: int = 25,
 ) -> dict[str, Any]:
     """Search/filter incidents and return a deterministic page."""
     sort_fields = {
-        "reference", "status", "severity", "first_observed", "last_observed",
-        "updated_at", "alert_count", "event_count",
+        "reference",
+        "status",
+        "severity",
+        "first_observed",
+        "last_observed",
+        "updated_at",
+        "alert_count",
+        "event_count",
     }
     if sort_by not in sort_fields:
         raise DashboardServiceError(f"Unsupported incident sort field: {sort_by}")
     if page < 1 or page_size < 1 or page_size > 200:
-        raise DashboardServiceError("Page must be positive and page_size must be between 1 and 200.")
+        raise DashboardServiceError(
+            "Page must be positive and page_size must be between 1 and 200."
+        )
     incidents = list_incidents(database_path, read_only=True)
     q, analyst_q, host_q, user_q = (
-        query.strip().casefold(), assigned_analyst.strip().casefold(),
-        host.strip().casefold(), username.strip().casefold(),
+        query.strip().casefold(),
+        assigned_analyst.strip().casefold(),
+        host.strip().casefold(),
+        username.strip().casefold(),
     )
     filtered: list[Incident] = []
     for item in incidents:
@@ -154,9 +187,13 @@ def list_dashboard_incidents(
             continue
         if analyst_q and analyst_q not in (item.assigned_analyst or "").casefold():
             continue
-        if host_q and not any(host_q in value.casefold() for value in item.entities.get("host_id", [])):
+        if host_q and not any(
+            host_q in value.casefold() for value in item.entities.get("host_id", [])
+        ):
             continue
-        if user_q and not any(user_q in value.casefold() for value in item.entities.get("username", [])):
+        if user_q and not any(
+            user_q in value.casefold() for value in item.entities.get("username", [])
+        ):
             continue
         if observed_from and item.first_observed.date() < observed_from:
             continue
@@ -169,8 +206,11 @@ def list_dashboard_incidents(
     page = min(page, pages)
     start = (page - 1) * page_size
     return {
-        "items": [_as_dict(item) for item in filtered[start:start + page_size]],
-        "total": total, "page": page, "page_size": page_size, "pages": pages,
+        "items": [_as_dict(item) for item in filtered[start : start + page_size]],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
     }
 
 
@@ -182,25 +222,32 @@ def get_incident_details(database_path: str | Path, incident_id: str) -> dict[st
     connection = _read_connection(database_path)
     try:
         for offset in range(0, len(ids), 400):
-            batch = ids[offset:offset + 400]
+            batch = ids[offset : offset + 400]
             if not batch:
                 continue
             marks = ",".join("?" for _ in batch)
             rows = connection.execute(
                 f"""SELECT event_id,timestamp_utc,event_type,host_id,username,source_ip,
                 destination_ip,action,outcome,process_json,source_id,attributes_json
-                FROM events WHERE event_id IN ({marks})""", batch,
+                FROM events WHERE event_id IN ({marks})""",
+                batch,
             ).fetchall()
             for row in rows:
                 events[row["event_id"]] = {
-                    "event_id": row["event_id"], "timestamp": row["timestamp_utc"],
-                    "event_type": row["event_type"], "host_id": row["host_id"],
-                    "username": row["username"], "source_ip": row["source_ip"],
-                    "destination_ip": row["destination_ip"], "action": row["action"],
+                    "event_id": row["event_id"],
+                    "timestamp": row["timestamp_utc"],
+                    "event_type": row["event_type"],
+                    "host_id": row["host_id"],
+                    "username": row["username"],
+                    "source_ip": row["source_ip"],
+                    "destination_ip": row["destination_ip"],
+                    "action": row["action"],
                     "outcome": row["outcome"],
                     "process": json.loads(row["process_json"]) if row["process_json"] else None,
-                    "source_id": row["source_id"], "attributes": json.loads(row["attributes_json"]),
-                    "source_available": True, "provenance": "source_telemetry",
+                    "source_id": row["source_id"],
+                    "attributes": json.loads(row["attributes_json"]),
+                    "source_available": True,
+                    "provenance": "source_telemetry",
                 }
     except sqlite3.Error as exc:
         raise DashboardServiceError(f"Cannot retrieve source evidence: {exc}") from exc
@@ -212,7 +259,10 @@ def get_incident_details(database_path: str | Path, incident_id: str) -> dict[st
 
 
 def list_dashboard_alerts(
-    database_path: str | Path, *, query: str = "", severities: set[str] | None = None,
+    database_path: str | Path,
+    *,
+    query: str = "",
+    severities: set[str] | None = None,
     limit: int = 500,
 ) -> list[dict[str, Any]]:
     """List persisted alert payloads with their optional incident assignment."""
@@ -237,18 +287,27 @@ def list_dashboard_alerts(
             continue
         alert["incident_id"] = row["incident_id"]
         alert["incident_reference"] = row["incident_reference"]
-        searchable = " ".join((
-            alert["alert_id"], alert["rule_id"], alert["rule_title"], alert["rationale"],
-            json.dumps(alert["grouping_context"], sort_keys=True),
-        )).casefold()
+        searchable = " ".join(
+            (
+                alert["alert_id"],
+                alert["rule_id"],
+                alert["rule_title"],
+                alert["rationale"],
+                json.dumps(alert["grouping_context"], sort_keys=True),
+            )
+        ).casefold()
         if not needle or needle in searchable:
             result.append(alert)
     return result
 
 
 def change_incident_status(
-    database_path: str | Path, incident_id: str, status: str, expected_version: int,
-    *, actor: str = "analyst",
+    database_path: str | Path,
+    incident_id: str,
+    status: str,
+    expected_version: int,
+    *,
+    actor: str = "analyst",
 ) -> Incident:
     try:
         target = IncidentStatus(status)
@@ -258,35 +317,59 @@ def change_incident_status(
 
 
 def assign_incident_to_analyst(
-    database_path: str | Path, incident_id: str, analyst: str | None, expected_version: int,
-    *, actor: str = "analyst",
+    database_path: str | Path,
+    incident_id: str,
+    analyst: str | None,
+    expected_version: int,
+    *,
+    actor: str = "analyst",
 ) -> Incident:
     return assign_analyst(database_path, incident_id, analyst, expected_version, actor=actor)
 
 
 def add_investigation_note(
-    database_path: str | Path, incident_id: str, note: str, *, expected_version: int,
+    database_path: str | Path,
+    incident_id: str,
+    note: str,
+    *,
+    expected_version: int,
     actor: str = "analyst",
 ) -> dict[str, Any]:
-    return add_note(database_path, incident_id, note, actor=actor, expected_version=expected_version)
+    return add_note(
+        database_path, incident_id, note, actor=actor, expected_version=expected_version
+    )
 
 
 def resolve_incident(
-    database_path: str | Path, incident_id: str, classification: str, summary: str,
-    expected_version: int, *, actor: str = "analyst",
+    database_path: str | Path,
+    incident_id: str,
+    classification: str,
+    summary: str,
+    expected_version: int,
+    *,
+    actor: str = "analyst",
 ) -> Incident:
     try:
         resolution = ResolutionClassification(classification)
     except ValueError as exc:
         raise IncidentError(f"invalid resolution classification: {classification}") from exc
     return update_status(
-        database_path, incident_id, IncidentStatus.RESOLVED, expected_version,
-        actor=actor, classification=resolution, summary=summary,
+        database_path,
+        incident_id,
+        IncidentStatus.RESOLVED,
+        expected_version,
+        actor=actor,
+        classification=resolution,
+        summary=summary,
     )
 
 
 def reopen_incident(
-    database_path: str | Path, incident_id: str, expected_version: int, *, actor: str = "analyst",
+    database_path: str | Path,
+    incident_id: str,
+    expected_version: int,
+    *,
+    actor: str = "analyst",
 ) -> Incident:
     current = get_incident(database_path, incident_id, read_only=True)
     if current.status != IncidentStatus.RESOLVED:
@@ -297,8 +380,11 @@ def reopen_incident(
 
 
 def run_synthetic_investigation(
-    database_path: str | Path, *, fixture_key: str = "soc_demo",
-    rule_profile: str = "all", actor: str = "synthetic-demo",
+    database_path: str | Path,
+    *,
+    fixture_key: str = "soc_demo",
+    rule_profile: str = "all",
+    actor: str = "synthetic-demo",
 ) -> dict[str, Any]:
     """Run only bundled fixtures, rule files, and the checked-in correlation policy."""
     if fixture_key not in FIXTURES:
@@ -316,11 +402,17 @@ def run_synthetic_investigation(
     alerts = evaluate_events(batch.events, rules)
     incidents = correlate_and_persist(path, alerts, batch.events, policy, actor=actor)
     return {
-        "database": str(path), "fixture": fixture.name, "rule_profile": rule_profile,
-        "records_read": batch.records_read, "events_inserted": inserted,
-        "event_duplicates": duplicates, "records_rejected": batch.records_rejected,
+        "database": str(path),
+        "fixture": fixture.name,
+        "rule_profile": rule_profile,
+        "records_read": batch.records_read,
+        "events_inserted": inserted,
+        "event_duplicates": duplicates,
+        "records_rejected": batch.records_rejected,
         "alerts_generated": len(alerts),
         "alerts": [alert.model_dump(mode="json") for alert in alerts],
         "incidents": [_as_dict(item) for item in incidents],
-        "issues": [{"line_number": item.line_number, "message": item.message} for item in batch.issues],
+        "issues": [
+            {"line_number": item.line_number, "message": item.message} for item in batch.issues
+        ],
     }

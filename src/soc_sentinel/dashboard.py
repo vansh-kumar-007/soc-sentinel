@@ -16,16 +16,23 @@ import streamlit as st
 
 from soc_sentinel.correlation import CorrelationPolicyError
 from soc_sentinel.dashboard_services import (
-    DashboardServiceError, PROJECT_ROOT, add_investigation_note,
-    assign_incident_to_analyst, change_incident_status, get_dashboard_summary,
-    get_incident_details, list_dashboard_alerts, list_dashboard_incidents,
-    reopen_incident, resolve_incident,
+    PROJECT_ROOT,
+    DashboardServiceError,
+    add_investigation_note,
+    assign_incident_to_analyst,
+    change_incident_status,
+    get_dashboard_summary,
+    get_incident_details,
+    list_dashboard_alerts,
+    list_dashboard_incidents,
+    reopen_incident,
+    resolve_incident,
 )
 from soc_sentinel.incidents import IncidentError
 
-DB_PATH = Path(os.environ.get(
-    "SOC_SENTINEL_DB", str(PROJECT_ROOT / "data" / "soc-sentinel-demo.sqlite3")
-)).expanduser()
+DB_PATH = Path(
+    os.environ.get("SOC_SENTINEL_DB", str(PROJECT_ROOT / "data" / "soc-sentinel-demo.sqlite3"))
+).expanduser()
 SEVERITIES = ["critical", "high", "medium", "low", "informational"]
 STATUSES = ["open", "in_progress", "resolved", "closed"]
 RESOLUTIONS = ["true_positive", "benign_positive", "false_positive", "inconclusive"]
@@ -46,7 +53,9 @@ h1,h2,h3{letter-spacing:-.025em}
 
 
 def header(title: str, subtitle: str) -> None:
-    st.markdown('<div class="ss-kicker">SOC SENTINEL / LOCAL OPERATIONS</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="ss-kicker">SOC SENTINEL / LOCAL OPERATIONS</div>', unsafe_allow_html=True
+    )
     st.title(title)
     st.caption(subtitle)
 
@@ -60,31 +69,53 @@ def empty(title: str, text: str) -> None:
 
 def short(value: Any, limit: int = 110) -> str:
     text = str(value or "")
-    return text if len(text) <= limit else text[:limit - 1] + "…"
+    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def incident_table(items: list[dict[str, Any]]) -> None:
-    st.dataframe([
-        {
-            "Reference": item["reference"], "Title": item["title"],
-            "Severity": item["severity"].upper(), "Status": item["status"].replace("_", " ").title(),
-            "First observed (UTC)": item["first_observed"], "Last observed (UTC)": item["last_observed"],
-            "Alerts": item["alert_count"], "Events": item["event_count"],
-            "Analyst": item.get("assigned_analyst") or "Unassigned", "Incident ID": item["incident_id"],
-        } for item in items
-    ], use_container_width=True, hide_index=True)
+    st.dataframe(
+        [
+            {
+                "Reference": item["reference"],
+                "Title": item["title"],
+                "Severity": item["severity"].upper(),
+                "Status": item["status"].replace("_", " ").title(),
+                "First observed (UTC)": item["first_observed"],
+                "Last observed (UTC)": item["last_observed"],
+                "Alerts": item["alert_count"],
+                "Events": item["event_count"],
+                "Analyst": item.get("assigned_analyst") or "Unassigned",
+                "Incident ID": item["incident_id"],
+            }
+            for item in items
+        ],
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 def overview(db: Path) -> None:
-    header("Operations overview", "Database-backed situational awareness for the local investigation queue.")
+    header(
+        "Operations overview",
+        "Database-backed situational awareness for the local investigation queue.",
+    )
     summary = get_dashboard_summary(db)
     metrics = st.columns(5)
-    for col, label, key in zip(metrics, ["Incidents", "Open", "In progress", "Alerts", "Resolved / closed"],
-                               ["total_incidents", "open_incidents", "in_progress_incidents", "total_alerts", None],
-                               strict=True):
-        value = (summary["resolved_incidents"] + summary["closed_incidents"]) if key is None else summary[key]
+    for col, label, key in zip(
+        metrics,
+        ["Incidents", "Open", "In progress", "Alerts", "Resolved / closed"],
+        ["total_incidents", "open_incidents", "in_progress_incidents", "total_alerts", None],
+        strict=True,
+    ):
+        value = (
+            (summary["resolved_incidents"] + summary["closed_incidents"])
+            if key is None
+            else summary[key]
+        )
         col.metric(label, value)
-    st.caption("Counts reflect persisted records only. Workflow status is not a maliciousness verdict.")
+    st.caption(
+        "Counts reflect persisted records only. Workflow status is not a maliciousness verdict."
+    )
     left, right = st.columns([1, 1.5])
     with left:
         st.subheader("Alerts by severity")
@@ -106,18 +137,25 @@ def overview(db: Path) -> None:
         if summary["activity"]:
             st.line_chart(pd.DataFrame(summary["activity"]).set_index("date"), y="incidents")
         else:
-            empty("No activity recorded", "Creation activity appears after incidents are persisted.")
+            empty(
+                "No activity recorded", "Creation activity appears after incidents are persisted."
+            )
         st.subheader("Recently updated")
         if summary["recent_incidents"]:
             incident_table(summary["recent_incidents"])
-            choices = {f'{i["reference"]} · {i["title"]}': i["incident_id"] for i in summary["recent_incidents"]}
+            choices = {
+                f"{i['reference']} · {i['title']}": i["incident_id"]
+                for i in summary["recent_incidents"]
+            }
             chosen = st.selectbox("Open a recent incident", list(choices))
             if st.button("Investigate selected incident", type="primary"):
                 st.session_state["selected_incident"] = choices[chosen]
                 st.session_state["navigation"] = "Incident explorer"
                 st.rerun()
         else:
-            empty("Your queue is clear", "Use Synthetic lab to generate fictional security activity.")
+            empty(
+                "Your queue is clear", "Use Synthetic lab to generate fictional security activity."
+            )
     with st.expander("Metric definitions"):
         st.json(summary["definitions"])
 
@@ -133,36 +171,50 @@ def workspace(db: Path, incident_id: str) -> None:
     with state:
         st.metric("Severity", inc["severity"].upper())
         st.metric("Status", inc["status"].replace("_", " ").title())
-        st.caption(f'Version {inc["version"]} · optimistic concurrency')
+        st.caption(f"Version {inc['version']} · optimistic concurrency")
     cols = st.columns(4)
-    for col, label, value in zip(cols, ["Alerts", "Evidence events", "First observed", "Last observed"],
-        [inc["alert_count"], inc["event_count"], inc["first_observed"], inc["last_observed"]], strict=True):
+    for col, label, value in zip(
+        cols,
+        ["Alerts", "Evidence events", "First observed", "Last observed"],
+        [inc["alert_count"], inc["event_count"], inc["first_observed"], inc["last_observed"]],
+        strict=True,
+    ):
         col.metric(label, str(value)[:19].replace("T", " ") if isinstance(value, str) else value)
-    st.caption(f'Incident ID: {inc["incident_id"]} · Analyst: {inc.get("assigned_analyst") or "Unassigned"}')
+    st.caption(
+        f"Incident ID: {inc['incident_id']} · Analyst: {inc.get('assigned_analyst') or 'Unassigned'}"
+    )
     if inc.get("resolution_classification"):
-        st.info(f'Resolution: {inc["resolution_classification"]} — {inc.get("resolution_summary") or ""}')
+        st.info(
+            f"Resolution: {inc['resolution_classification']} — {inc.get('resolution_summary') or ''}"
+        )
     entity_cols = st.columns(max(1, len(inc["entities"])))
     for col, (kind, values) in zip(entity_cols, sorted(inc["entities"].items()), strict=False):
         with col:
             st.caption(kind.replace("_", " ").title())
             st.write(", ".join(values) or "Not recorded")
 
-    tabs = st.tabs(["Overview", "Alerts & evidence", "Timeline", "Correlation", "Notes", "Audit", "Manage"])
+    tabs = st.tabs(
+        ["Overview", "Alerts & evidence", "Timeline", "Correlation", "Notes", "Audit", "Manage"]
+    )
     with tabs[0]:
         st.markdown("#### Investigation context")
         st.write(inc["summary"])
         st.json(inc["entities"])
-        st.caption(f'{len(data["evidence_events"])} source event record(s) available.')
+        st.caption(f"{len(data['evidence_events'])} source event record(s) available.")
         if data["missing_event_ids"]:
             st.warning("Source details unavailable for: " + ", ".join(data["missing_event_ids"]))
     with tabs[1]:
         if not data["alerts"]:
             st.info("No linked alerts are stored for this incident.")
         for alert in data["alerts"]:
-            with st.expander(f'{alert["rule_id"]} · {alert["severity"].upper()} · {alert["alert_id"]}',
-                             expanded=len(data["alerts"]) == 1):
-                st.markdown(f'**{alert["rule_title"]}**')
-                st.caption(f'{alert["first_observed"]} → {alert["last_observed"]} · {alert["event_count"]} event(s)')
+            with st.expander(
+                f"{alert['rule_id']} · {alert['severity'].upper()} · {alert['alert_id']}",
+                expanded=len(data["alerts"]) == 1,
+            ):
+                st.markdown(f"**{alert['rule_title']}**")
+                st.caption(
+                    f"{alert['first_observed']} → {alert['last_observed']} · {alert['event_count']} event(s)"
+                )
                 st.markdown("**Detection rationale**")
                 st.write(alert["rationale"])
                 st.markdown("**Grouping context**")
@@ -173,10 +225,25 @@ def workspace(db: Path, incident_id: str) -> None:
                     with st.container(border=True):
                         st.code(event_id)
                         if event:
-                            st.caption(f'{event["timestamp"]} · {event["source_id"]} · source telemetry')
-                            st.json({key: event.get(key) for key in (
-                                "event_type", "host_id", "username", "source_ip", "destination_ip",
-                                "action", "outcome", "process", "attributes")})
+                            st.caption(
+                                f"{event['timestamp']} · {event['source_id']} · source telemetry"
+                            )
+                            st.json(
+                                {
+                                    key: event.get(key)
+                                    for key in (
+                                        "event_type",
+                                        "host_id",
+                                        "username",
+                                        "source_ip",
+                                        "destination_ip",
+                                        "action",
+                                        "outcome",
+                                        "process",
+                                        "attributes",
+                                    )
+                                }
+                            )
                         else:
                             st.warning("Source event unavailable; evidence reference retained.")
     with tabs[2]:
@@ -184,27 +251,50 @@ def workspace(db: Path, incident_id: str) -> None:
         kinds = sorted({item.get("kind", "entry") for item in timeline})
         selected = st.multiselect("Timeline entry types", kinds, default=kinds)
         visible = [item for item in timeline if item.get("kind", "entry") in selected]
-        st.caption("UTC order is deterministic. Security-event and application-audit clocks are distinguished.")
-        st.dataframe([{
-            "Timestamp": item["timestamp"], "Clock": item["timestamp_type"], "Entry": item["kind"],
-            "Provenance": item["provenance"], "Actor": item.get("actor", ""),
-            "Alert": item.get("alert_id", ""), "Event": item.get("event_id", ""),
-            "Details": short(item.get("note") or item.get("explanation") or item.get("rationale")
-                             or item.get("details") or item.get("strategy")),
-        } for item in visible], use_container_width=True, hide_index=True)
+        st.caption(
+            "UTC order is deterministic. Security-event and application-audit clocks are distinguished."
+        )
+        st.dataframe(
+            [
+                {
+                    "Timestamp": item["timestamp"],
+                    "Clock": item["timestamp_type"],
+                    "Entry": item["kind"],
+                    "Provenance": item["provenance"],
+                    "Actor": item.get("actor", ""),
+                    "Alert": item.get("alert_id", ""),
+                    "Event": item.get("event_id", ""),
+                    "Details": short(
+                        item.get("note")
+                        or item.get("explanation")
+                        or item.get("rationale")
+                        or item.get("details")
+                        or item.get("strategy")
+                    ),
+                }
+                for item in visible
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
         if visible:
-            idx = st.selectbox("Inspect timeline entry", range(len(visible)),
-                format_func=lambda n: f'{visible[n]["timestamp"]} · {visible[n]["kind"]} · '
-                f'{visible[n].get("event_id", visible[n].get("alert_id", ""))}')
+            idx = st.selectbox(
+                "Inspect timeline entry",
+                range(len(visible)),
+                format_func=lambda n: (
+                    f"{visible[n]['timestamp']} · {visible[n]['kind']} · "
+                    f"{visible[n].get('event_id', visible[n].get('alert_id', ''))}"
+                ),
+            )
             st.json(visible[idx])
     with tabs[3]:
         if not data["correlation_explanations"]:
             st.info("No pairwise correlation explanation is stored.")
         for item in data["correlation_explanations"]:
             with st.container(border=True):
-                st.markdown(f'**{item["strategy"]}** · {item["time_gap_seconds"]:g}s gap')
+                st.markdown(f"**{item['strategy']}** · {item['time_gap_seconds']:g}s gap")
                 st.write(item["explanation"])
-                st.caption(f'{item["alert_id"]} related to {item["related_alert_id"]}')
+                st.caption(f"{item['alert_id']} related to {item['related_alert_id']}")
                 st.json(item["shared_values"])
         st.caption("Correlation provides an investigative lead, not proof of compromise.")
     with tabs[4]:
@@ -214,13 +304,20 @@ def workspace(db: Path, incident_id: str) -> None:
             st.info("No investigation notes yet.")
         with st.form("note_form", clear_on_submit=True):
             actor = st.text_input("Analyst label", value="analyst")
-            note = st.text_area("Investigation note", placeholder="Record evidence reviewed and next steps…")
+            note = st.text_area(
+                "Investigation note", placeholder="Record evidence reviewed and next steps…"
+            )
             add = st.form_submit_button("Add note", type="primary")
         if add:
             try:
-                saved = add_investigation_note(db, inc["incident_id"], note,
-                    expected_version=inc["version"], actor=actor.strip() or "analyst")
-                st.success(f'Note saved at {saved["created_at"]}.')
+                saved = add_investigation_note(
+                    db,
+                    inc["incident_id"],
+                    note,
+                    expected_version=inc["version"],
+                    actor=actor.strip() or "analyst",
+                )
+                st.success(f"Note saved at {saved['created_at']}.")
                 st.rerun()
             except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
                 st.error(f"Note was not saved: {exc}")
@@ -228,11 +325,22 @@ def workspace(db: Path, incident_id: str) -> None:
     with tabs[5]:
         audit = data["timeline"]
         audit_rows = [item for item in audit if item.get("timestamp_type") == "application_audit"]
-        st.dataframe([{
-            "Timestamp": item["timestamp"], "Action": item["kind"], "Provenance": item["provenance"],
-            "Actor": item.get("actor", ""), "Details": short(item.get("details") or item.get("note")
-                                                                or item.get("explanation")),
-        } for item in audit_rows], use_container_width=True, hide_index=True)
+        st.dataframe(
+            [
+                {
+                    "Timestamp": item["timestamp"],
+                    "Action": item["kind"],
+                    "Provenance": item["provenance"],
+                    "Actor": item.get("actor", ""),
+                    "Details": short(
+                        item.get("details") or item.get("note") or item.get("explanation")
+                    ),
+                }
+                for item in audit_rows
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
         history = [item for item in audit_rows if "audit_id" in item]
         if history:
             with st.expander("Inspect audit details"):
@@ -242,10 +350,15 @@ def workspace(db: Path, incident_id: str) -> None:
         allowed = {
             "open": ["open", "in_progress", "resolved"],
             "in_progress": ["in_progress", "open", "resolved"],
-            "resolved": ["resolved", "open", "closed"], "closed": ["closed"],
+            "resolved": ["resolved", "open", "closed"],
+            "closed": ["closed"],
         }[inc["status"]]
-        target = st.selectbox("Target status", allowed,
-            format_func=lambda item: item.replace("_", " ").title(), key=f'status_{inc["incident_id"]}')
+        target = st.selectbox(
+            "Target status",
+            allowed,
+            format_func=lambda item: item.replace("_", " ").title(),
+            key=f"status_{inc['incident_id']}",
+        )
         classification, summary = "inconclusive", ""
         if target == "resolved":
             classification = st.selectbox("Resolution classification", RESOLUTIONS)
@@ -256,7 +369,9 @@ def workspace(db: Path, incident_id: str) -> None:
         if st.button("Apply status transition", type="primary", disabled=not confirmed):
             try:
                 if target == "resolved":
-                    updated = resolve_incident(db, inc["incident_id"], classification, summary, inc["version"])
+                    updated = resolve_incident(
+                        db, inc["incident_id"], classification, summary, inc["version"]
+                    )
                 elif target == "open" and inc["status"] == "resolved":
                     updated = reopen_incident(db, inc["incident_id"], inc["version"])
                 else:
@@ -268,12 +383,18 @@ def workspace(db: Path, incident_id: str) -> None:
                 st.caption("Reload the incident before retrying a stale update.")
         st.divider()
         with st.form("assignment_form"):
-            analyst = st.text_input("Assigned analyst (blank means unassign)", value=inc.get("assigned_analyst") or "")
+            analyst = st.text_input(
+                "Assigned analyst (blank means unassign)", value=inc.get("assigned_analyst") or ""
+            )
             assign = st.form_submit_button("Save assignment")
         if assign:
             try:
-                updated = assign_incident_to_analyst(db, inc["incident_id"], analyst.strip() or None, inc["version"])
-                st.success(f'Assignment saved: {updated.assigned_analyst or "unassigned"} · version {updated.version}')
+                updated = assign_incident_to_analyst(
+                    db, inc["incident_id"], analyst.strip() or None, inc["version"]
+                )
+                st.success(
+                    f"Assignment saved: {updated.assigned_analyst or 'unassigned'} · version {updated.version}"
+                )
                 st.rerun()
             except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
                 st.error(f"Assignment was not changed: {exc}")
@@ -298,26 +419,44 @@ def incident_explorer(db: Path) -> None:
         with e:
             end = st.date_input("Observed through", value=None)
         with f:
-            sort_by = st.selectbox("Sort by", ["last_observed", "first_observed", "updated_at", "severity", "reference", "alert_count"])
+            sort_by = st.selectbox(
+                "Sort by",
+                [
+                    "last_observed",
+                    "first_observed",
+                    "updated_at",
+                    "severity",
+                    "reference",
+                    "alert_count",
+                ],
+            )
             descending = st.checkbox("Descending", value=True)
         with g:
             size = st.selectbox("Page size", [10, 25, 50, 100], index=1)
     kwargs: dict[str, Any] = {
-        "query": query, "statuses": set(statuses) or None, "severities": set(severities) or None,
-        "assigned_analyst": analyst, "host": host, "username": username,
+        "query": query,
+        "statuses": set(statuses) or None,
+        "severities": set(severities) or None,
+        "assigned_analyst": analyst,
+        "host": host,
+        "username": username,
         "observed_from": start if isinstance(start, date) else None,
         "observed_to": end if isinstance(end, date) else None,
-        "sort_by": sort_by, "descending": descending, "page_size": size,
+        "sort_by": sort_by,
+        "descending": descending,
+        "page_size": size,
     }
     result = list_dashboard_incidents(db, **kwargs, page=1)
-    st.caption(f'{result["total"]} incident(s) match these filters.')
+    st.caption(f"{result['total']} incident(s) match these filters.")
     if not result["items"]:
         empty("No matching incidents", "Change the filters or run the synthetic walkthrough.")
         return
     page = st.number_input("Page", min_value=1, max_value=result["pages"], value=1, step=1)
     result = list_dashboard_incidents(db, **kwargs, page=int(page))
     incident_table(result["items"])
-    options = {f'{item["reference"]} · {item["title"]}': item["incident_id"] for item in result["items"]}
+    options = {
+        f"{item['reference']} · {item['title']}": item["incident_id"] for item in result["items"]
+    }
     labels = list(options)
     previous = st.session_state.get("selected_incident")
     default = next((i for i, label in enumerate(labels) if options[label] == previous), 0)
@@ -330,7 +469,10 @@ def incident_explorer(db: Path) -> None:
 
 
 def alerts_page(db: Path) -> None:
-    header("Alerts & evidence", "Inspect persisted detection output without conflating evidence with conclusions.")
+    header(
+        "Alerts & evidence",
+        "Inspect persisted detection output without conflating evidence with conclusions.",
+    )
     a, b = st.columns([3, 1])
     with a:
         query = st.text_input("Search alerts", placeholder="Alert ID, rule, entity or rationale")
@@ -341,17 +483,28 @@ def alerts_page(db: Path) -> None:
     if not alerts:
         empty("No matching alerts", "Run the synthetic lab or adjust your search.")
         return
-    st.dataframe([{
-        "Alert ID": item["alert_id"], "Rule": item["rule_id"], "Title": item["rule_title"],
-        "Severity": item["severity"].upper(), "First observed": item["first_observed"],
-        "Last observed": item["last_observed"], "Events": item["event_count"],
-        "Incident": item.get("incident_reference") or "Unassigned",
-    } for item in alerts], use_container_width=True, hide_index=True)
+    st.dataframe(
+        [
+            {
+                "Alert ID": item["alert_id"],
+                "Rule": item["rule_id"],
+                "Title": item["rule_title"],
+                "Severity": item["severity"].upper(),
+                "First observed": item["first_observed"],
+                "Last observed": item["last_observed"],
+                "Events": item["event_count"],
+                "Incident": item.get("incident_reference") or "Unassigned",
+            }
+            for item in alerts
+        ],
+        use_container_width=True,
+        hide_index=True,
+    )
     by_id = {item["alert_id"]: item for item in alerts}
     chosen = st.selectbox("Inspect alert", list(by_id))
     alert = by_id[chosen]
-    st.subheader(f'{alert["rule_id"]} · {alert["rule_title"]}')
-    st.caption(f'{alert["alert_id"]} · {alert["severity"].upper()}')
+    st.subheader(f"{alert['rule_id']} · {alert['rule_title']}")
+    st.caption(f"{alert['alert_id']} · {alert['severity'].upper()}")
     st.write(alert["rationale"])
     st.markdown("**Grouping context**")
     st.json(alert["grouping_context"])
@@ -363,11 +516,11 @@ def alerts_page(db: Path) -> None:
             with st.container(border=True):
                 st.code(event_id)
                 if event:
-                    st.caption(f'{event["timestamp"]} · {event["source_id"]}')
+                    st.caption(f"{event['timestamp']} · {event['source_id']}")
                     st.json(event)
                 else:
                     st.warning("Source event unavailable; reference retained.")
-        st.caption(f'Incident: {alert.get("incident_reference")} · {alert["incident_id"]}')
+        st.caption(f"Incident: {alert.get('incident_reference')} · {alert['incident_id']}")
         if st.button("Open associated incident"):
             st.session_state["selected_incident"] = alert["incident_id"]
             st.session_state["navigation"] = "Incident explorer"
@@ -377,48 +530,92 @@ def alerts_page(db: Path) -> None:
 
 
 def synthetic_lab(db: Path) -> None:
-    header("Synthetic lab", "A reproducible demonstration workflow — not live enterprise monitoring.")
-    st.warning("Only bundled synthetic fixtures and shipped rules are used. No simulated command is executed.")
+    header(
+        "Synthetic lab", "A reproducible demonstration workflow — not live enterprise monitoring."
+    )
+    st.warning(
+        "Only bundled synthetic fixtures and shipped rules are used. No simulated command is executed."
+    )
     with st.form("synthetic_run"):
-        fixture_label = st.selectbox("Synthetic fixture", ["SOC incident walkthrough", "Authentication sample"])
-        fixture_key = {"SOC incident walkthrough": "soc_demo", "Authentication sample": "authentication"}[fixture_label]
-        profile_label = st.selectbox("Detection profile", ["All shipped rules", "Authentication only", "Process only"])
-        profile = {"All shipped rules": "all", "Authentication only": "authentication", "Process only": "process"}[profile_label]
+        fixture_label = st.selectbox(
+            "Synthetic fixture", ["SOC incident walkthrough", "Authentication sample"]
+        )
+        fixture_key = {
+            "SOC incident walkthrough": "soc_demo",
+            "Authentication sample": "authentication",
+        }[fixture_label]
+        profile_label = st.selectbox(
+            "Detection profile", ["All shipped rules", "Authentication only", "Process only"]
+        )
+        profile = {
+            "All shipped rules": "all",
+            "Authentication only": "authentication",
+            "Process only": "process",
+        }[profile_label]
         st.selectbox("Correlation policy", ["Checked-in policy · correlation.yaml"])
         submitted = st.form_submit_button("Run detection + correlation", type="primary")
     if submitted:
         try:
             from soc_sentinel.dashboard_services import run_synthetic_investigation
+
             result = run_synthetic_investigation(db, fixture_key=fixture_key, rule_profile=profile)
             st.session_state["pipeline_result"] = result
             st.success("Pipeline completed; the backend returned persisted results.")
-        except (DashboardServiceError, CorrelationPolicyError, IncidentError, sqlite3.Error, OSError, ValueError) as exc:
+        except (
+            DashboardServiceError,
+            CorrelationPolicyError,
+            IncidentError,
+            sqlite3.Error,
+            OSError,
+            ValueError,
+        ) as exc:
             st.error(f"Pipeline failed: {exc}")
     result = st.session_state.get("pipeline_result")
     if result:
         cols = st.columns(4)
-        for col, label, key in zip(cols, ["Records read", "Events inserted", "Alerts generated", "Rejected records"],
-                                   ["records_read", "events_inserted", "alerts_generated", "records_rejected"], strict=True):
+        for col, label, key in zip(
+            cols,
+            ["Records read", "Events inserted", "Alerts generated", "Rejected records"],
+            ["records_read", "events_inserted", "alerts_generated", "records_rejected"],
+            strict=True,
+        ):
             col.metric(label, result[key])
-        st.caption(f'Fixture: {result["fixture"]} · profile: {result["rule_profile"]} · existing event IDs skipped: {result["event_duplicates"]}')
+        st.caption(
+            f"Fixture: {result['fixture']} · profile: {result['rule_profile']} · existing event IDs skipped: {result['event_duplicates']}"
+        )
         if result["issues"]:
             st.warning("Fixture records were rejected.")
             st.dataframe(result["issues"], use_container_width=True, hide_index=True)
         st.subheader("Detection output")
-        st.dataframe([{
-            "Alert ID": item["alert_id"], "Rule": item["rule_id"], "Severity": item["severity"].upper(),
-            "Evidence events": item["event_count"], "Rationale": short(item["rationale"]),
-        } for item in result["alerts"]], use_container_width=True, hide_index=True)
+        st.dataframe(
+            [
+                {
+                    "Alert ID": item["alert_id"],
+                    "Rule": item["rule_id"],
+                    "Severity": item["severity"].upper(),
+                    "Evidence events": item["event_count"],
+                    "Rationale": short(item["rationale"]),
+                }
+                for item in result["alerts"]
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
         st.subheader("Persisted incidents")
         incident_table(result["incidents"])
         if result["incidents"]:
-            choices = {f'{item["reference"]} · {item["title"]}': item["incident_id"] for item in result["incidents"]}
+            choices = {
+                f"{item['reference']} · {item['title']}": item["incident_id"]
+                for item in result["incidents"]
+            }
             selected = st.selectbox("Open a pipeline incident", list(choices))
             if st.button("Investigate pipeline result"):
                 st.session_state["selected_incident"] = choices[selected]
                 st.session_state["navigation"] = "Incident explorer"
                 st.rerun()
-        st.caption("Repeated runs are idempotent for stable event/alert IDs and incident relationships.")
+        st.caption(
+            "Repeated runs are idempotent for stable event/alert IDs and incident relationships."
+        )
 
 
 def main() -> None:
@@ -438,7 +635,9 @@ def main() -> None:
         header("SOC Sentinel", "Evidence-led investigation on your local machine.")
         st.info("The configured database does not exist yet. Run this from the repository root:")
         st.code("soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3", language="bash")
-        st.caption("Use --reset only for a separate demo-named file. The default working database is protected.")
+        st.caption(
+            "Use --reset only for a separate demo-named file. The default working database is protected."
+        )
         return
     try:
         if nav == "Operations overview":
@@ -449,7 +648,13 @@ def main() -> None:
             alerts_page(DB_PATH)
         else:
             synthetic_lab(DB_PATH)
-    except (DashboardServiceError, IncidentError, CorrelationPolicyError, sqlite3.Error, OSError) as exc:
+    except (
+        DashboardServiceError,
+        IncidentError,
+        CorrelationPolicyError,
+        sqlite3.Error,
+        OSError,
+    ) as exc:
         st.error(f"Dashboard operation could not complete: {exc}")
         st.caption("Check the SQLite path or reload after a concurrent update.")
 
