@@ -122,8 +122,8 @@ def _threshold_alerts(rule: DetectionRule, events: list[SecurityEvent]) -> list[
                     rule,
                     evidence,
                     context,
-                    f"{len(evidence)} matching events for this group occurred within {rule.window} seconds "
-                    f"(configured threshold: {rule.threshold}).",
+                    f"{len(evidence)} matching events for this group occurred within "
+                    f"{rule.window} seconds (configured threshold: {rule.threshold}).",
                 )
             )
             last_alert_time = endpoint.timestamp
@@ -174,8 +174,9 @@ def _sequence_alerts(rule: DetectionRule, events: list[SecurityEvent]) -> list[A
                     rule,
                     evidence,
                     context,
-                    f"{len(failures)} first-stage events preceded a second-stage event for the same "
-                    f"group within {rule.window} seconds (minimum: {rule.threshold}).",
+                    f"{len(failures)} first-stage events preceded a second-stage event "
+                    f"for the same group within {rule.window} seconds "
+                    f"(minimum: {rule.threshold}).",
                 )
             )
     return alerts
