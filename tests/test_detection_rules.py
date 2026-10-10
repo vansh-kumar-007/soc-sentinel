@@ -10,7 +10,6 @@ import yaml
 
 from soc_sentinel.detection.rules import RuleValidationError, load_rules
 
-
 ROOT = Path(__file__).parents[1]
 SHIPPED_RULES = ROOT / "rules"
 
