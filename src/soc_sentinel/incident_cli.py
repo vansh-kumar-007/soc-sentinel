@@ -113,7 +113,8 @@ def _emit(value: Any, json_output: bool) -> None:
                 )
                 print(f"  ID: {item.incident_id}; version: {item.version}")
                 print(
-                    f"  Observed: {item.first_observed.isoformat()} → {item.last_observed.isoformat()}"
+                    f"  Observed: {item.first_observed.isoformat()} "
+                    f"→ {item.last_observed.isoformat()}"
                 )
                 if item.assigned_analyst:
                     print(f"  Analyst: {item.assigned_analyst}")
@@ -126,7 +127,8 @@ def _emit(value: Any, json_output: bool) -> None:
                     print(f"  {item['explanation']}")
                 if item.get("event_id"):
                     print(
-                        f"  Event: {item['event_id']} (source available: {item.get('source_available')})"
+                        f"  Event: {item['event_id']} "
+                        f"(source available: {item.get('source_available')})"
                     )
                 if item.get("note"):
                     print(f"  Note by {item.get('actor', 'analyst')}: {item['note']}")
@@ -175,7 +177,10 @@ def _emit(value: Any, json_output: bool) -> None:
 
 
 def handle_incident_command(args: argparse.Namespace) -> int:
-    """Run an incident command; 0 success, 1 I/O/storage, 2 config, 3 strict input, 4 operation error."""
+    """Run an incident command.
+
+    Exit codes: 0 success, 1 I/O/storage, 2 config, 3 strict input, 4 operation error.
+    """
     try:
         if args.command == "correlate":
             rules = load_rules(args.rules)
