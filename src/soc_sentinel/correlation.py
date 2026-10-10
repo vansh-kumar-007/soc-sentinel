@@ -144,13 +144,9 @@ def correlate_pair(
     if not matches or len(shared_entities) < policy.minimum_shared_entities:
         return None
     primary_strategy = matches[0][0]
-    all_shared_values = {
-        key: value for key, value in sorted(shared_entities)
-    }
+    all_shared_values = {key: value for key, value in sorted(shared_entities)}
     strategy_names = ", ".join(strategy for strategy, _ in matches)
-    details = ", ".join(
-        f"{key}={value}" for key, value in sorted(all_shared_values.items())
-    )
+    details = ", ".join(f"{key}={value}" for key, value in sorted(all_shared_values.items()))
     explanation = (
         f"Matched {primary_strategy}; corroborating strategies: {strategy_names}. "
         f"Shared values: {details}. {len(shared_entities)} distinct shared entity/evidence "
