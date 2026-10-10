@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable
 
@@ -39,7 +40,6 @@ def initialize_database(database_path: str | Path) -> Path:
                 f"database schema version {version} is newer than supported {_SCHEMA_VERSION}"
             )
         if version < 1:
-            _create_phase_one_schema(connection)
             connection.execute(
                 "INSERT INTO schema_metadata (key, value) VALUES ('schema_version', '1') "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value"
@@ -51,17 +51,6 @@ def initialize_database(database_path: str | Path) -> Path:
                 "UPDATE schema_metadata SET value = '2' WHERE key = 'schema_version'"
             )
     return path
-
-
-def _create_phase_one_schema(connection: sqlite3.Connection) -> None:
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS schema_metadata (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        )
-        """
-    )
 
 
 def _migrate_to_v2(connection: sqlite3.Connection) -> None:
@@ -95,22 +84,6 @@ def _migrate_to_v2(connection: sqlite3.Connection) -> None:
     connection.execute("CREATE INDEX IF NOT EXISTS idx_events_username ON events(username)")
 
 
-def initialize_connection(database_path: str | Path) -> tuple[Path, sqlite3.Connection]:
-    """Return an initialized database path and open connection for a transaction."""
-    path = initialize_database(database_path)
-    connection = sqlite3.connect(path)
-    connection.execute("PRAGMA foreign_keys = ON")
-    return path, connection
-
-
-def _json_or_none(value: object) -> str | None:
-    if value is None:
-        return None
-    if hasattr(value, "model_dump"):
-        return json.dumps(value.model_dump(mode="json"), separators=(",", ":"), sort_keys=True)
-    return json.dumps(value, separators=(",", ":"), sort_keys=True)
-
-
 def insert_events(
     database_path: str | Path, events: Iterable[SecurityEvent]
 ) -> tuple[Path, int, int]:
@@ -136,7 +109,7 @@ def insert_events(
                 """,
                 (
                     payload["event_id"],
-                    payload["timestamp"].astimezone().astimezone(__import__("datetime").UTC).isoformat(),
+                    payload["timestamp"].astimezone(UTC).isoformat().replace("+00:00", "Z"),
                     payload["event_type"].value,
                     payload["host_id"],
                     payload["username"],
@@ -155,3 +128,11 @@ def insert_events(
             else:
                 duplicates += 1
     return path, inserted, duplicates
+
+
+def _json_or_none(value: object) -> str | None:
+    if value is None:
+        return None
+    if hasattr(value, "model_dump"):
+        return json.dumps(value.model_dump(mode="json"), separators=(",", ":"), sort_keys=True)
+    return json.dumps(value, separators=(",", ":"), sort_keys=True)
