@@ -10,7 +10,8 @@ UTF-8 JSONL
   -> validated safe YAML correlation policy
   -> deterministic alert relationships with explicit explanations
   -> transactional SQLite alerts / incidents / relationships / audit
-  -> incident CLI + framework-independent dashboard services\n  -> local Streamlit dashboard, chronological timeline, lifecycle operations
+  -> incident CLI + framework-independent dashboard services
+  -> local Streamlit dashboard, chronological timeline, lifecycle operations
 
 Independent evaluation path:
   versioned synthetic ground truth + raw synthetic event records
@@ -28,7 +29,10 @@ Independent evaluation path:
 - detection/rules.py and detection/engine.py: existing declarative detection and stable evidence-linked alert IDs.
 - correlation.py: strict Pydantic correlation policy, safe YAML loading, entity extraction, time-window matching, and human-readable relationship explanations.
 - incidents.py: incident persistence, assignment, notes, optimistic version checks, lifecycle transitions, audit history, and timeline assembly.
-- incident_cli.py: end-to-end correlate and local investigation commands.\n- dashboard_services.py: framework-independent summary/search/detail/evidence services and allow-listed synthetic pipeline; query-only SQLite access for reads.\n- demo.py: explicit, demo-target-guarded synthetic database seed/reset command.\n- dashboard.py: optional Streamlit UI; it delegates to dashboard_services.py and Phase 4 lifecycle methods.
+- incident_cli.py: end-to-end correlate and local investigation commands.
+- dashboard_services.py: framework-independent summary/search/detail/evidence services and allow-listed synthetic pipeline; query-only SQLite access for reads.
+- demo.py: explicit, demo-target-guarded synthetic database seed/reset command.
+- dashboard.py: optional Streamlit UI; it delegates to dashboard_services.py and Phase 4 lifecycle methods.
 - cli.py: existing CLI plus incident and evaluation command integration.
 - evaluation.py: independent benchmark validation, fingerprints, one-to-one evidence matching, metrics, and deterministic reports; it does not access SQLite, correlation, or incident lifecycle.
 
