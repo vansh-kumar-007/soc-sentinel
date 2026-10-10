@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
@@ -102,6 +103,27 @@ class Condition(RuleModel):
                 raise ValueError(f"operator '{self.operator}' requires a non-empty string")
         elif isinstance(self.value, (dict, list)):
             raise ValueError("comparison values must be scalar")
+
+        if field_type == "string":
+            values = self.value if self.operator in {"in", "not_in"} else [self.value]
+            if any(not isinstance(item, str) for item in values):
+                raise ValueError(f"field '{self.field}' requires string comparison values")
+        elif field_type == "number":
+            values = self.value if self.operator in {"in", "not_in"} else [self.value]
+            if any(isinstance(item, bool) or not isinstance(item, (int, float)) for item in values):
+                raise ValueError(f"field '{self.field}' requires numeric comparison values")
+        elif field_type == "timestamp":
+            if self.operator not in {"eq", "ne"}:
+                raise ValueError("timestamp fields support only eq and ne")
+            if isinstance(self.value, str):
+                try:
+                    self.value = datetime.fromisoformat(self.value.replace("Z", "+00:00"))
+                except ValueError as exc:
+                    raise ValueError("timestamp comparison value must be ISO-8601") from exc
+            if not isinstance(self.value, datetime):
+                raise ValueError("timestamp comparison value must be ISO-8601")
+            if self.value.tzinfo is None or self.value.utcoffset() is None:
+                raise ValueError("timestamp comparison value must include a timezone")
         return self
 
 
