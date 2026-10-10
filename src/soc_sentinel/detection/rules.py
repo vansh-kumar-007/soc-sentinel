@@ -200,7 +200,9 @@ class DetectionRule(RuleModel):
             self._validate_condition_fields(spec.conditions, set(self.event_types))
         elif spec.type == "sequence":
             if spec.conditions:
-                raise ValueError("sequence detections use stage conditions, not detection.conditions")
+                raise ValueError(
+                    "sequence detections use stage conditions, not detection.conditions"
+                )
             if len(spec.stages) != 2:
                 raise ValueError("sequence detections require exactly two ordered stages")
             if self.threshold is None or self.threshold < 1:
@@ -211,7 +213,9 @@ class DetectionRule(RuleModel):
                 raise ValueError("sequence detections require at least one group_by field")
             for stage in spec.stages:
                 if stage.event_type not in self.event_types:
-                    raise ValueError("each sequence stage event_type must appear in rule event_types")
+                    raise ValueError(
+                        "each sequence stage event_type must appear in rule event_types"
+                    )
                 self._validate_condition_fields(stage.conditions, {stage.event_type})
         return self
 
