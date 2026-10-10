@@ -1,10 +1,13 @@
 """Incident correlation, persistence, lifecycle, and migration tests."""
 
 from __future__ import annotations
+
 import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
 import pytest
+
 from soc_sentinel.correlation import (
     CorrelationPolicy,
     CorrelationPolicyError,
@@ -24,7 +27,6 @@ from soc_sentinel.incidents import (
     get_incident,
     incident_audit_history,
     incident_timeline,
-    list_incidents,
     show_incident,
     update_status,
 )

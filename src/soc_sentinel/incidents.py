@@ -1,6 +1,7 @@
 """Persistent local incident workflow, correlation, lifecycle, and timeline."""
 
 from __future__ import annotations
+
 import hashlib
 import json
 import sqlite3
@@ -9,7 +10,9 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from soc_sentinel.correlation import CorrelationPolicy, alert_entities, correlate_pair
 from soc_sentinel.db import initialize_database
 from soc_sentinel.detection.engine import Alert

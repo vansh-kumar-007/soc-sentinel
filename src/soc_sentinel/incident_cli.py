@@ -1,16 +1,17 @@
 """CLI adapters for local incident investigation operations."""
 
 from __future__ import annotations
+
 import argparse
 import json
 import sqlite3
 import sys
 from typing import Any
+
 from soc_sentinel.correlation import CorrelationPolicyError, load_correlation_policy
 from soc_sentinel.db import insert_events
 from soc_sentinel.detection.engine import evaluate_events
 from soc_sentinel.detection.rules import RuleValidationError, load_rules
-from soc_sentinel.ingestion.jsonl import parse_jsonl_file
 from soc_sentinel.incidents import (
     IncidentStatus,
     ResolutionClassification,
@@ -23,6 +24,7 @@ from soc_sentinel.incidents import (
     show_incident,
     update_status,
 )
+from soc_sentinel.ingestion.jsonl import parse_jsonl_file
 
 
 def add_incident_parsers(subparsers: Any) -> None:

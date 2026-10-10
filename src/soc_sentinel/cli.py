@@ -1,18 +1,20 @@
 """Command-line entry point for ingestion, detection, and incident investigation."""
 
 from __future__ import annotations
+
 import argparse
 import json
 import sqlite3
 import sys
 from collections.abc import Sequence
 from typing import Any
+
 from soc_sentinel import __version__
 from soc_sentinel.db import initialize_database, insert_events
 from soc_sentinel.detection.engine import evaluate_events
 from soc_sentinel.detection.rules import RuleValidationError, load_rules
-from soc_sentinel.ingestion.jsonl import parse_jsonl_file
 from soc_sentinel.incident_cli import add_incident_parsers, handle_incident_command
+from soc_sentinel.ingestion.jsonl import parse_jsonl_file
 
 
 def _build_parser() -> argparse.ArgumentParser:

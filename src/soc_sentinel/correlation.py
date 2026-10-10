@@ -1,11 +1,14 @@
 """Validated, explainable alert-to-alert correlation policies."""
 
 from __future__ import annotations
+
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Literal
+
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
 from soc_sentinel.detection.engine import Alert
 from soc_sentinel.schemas import SecurityEvent
 
