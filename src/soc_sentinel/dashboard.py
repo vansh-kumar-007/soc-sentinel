@@ -12,8 +12,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-st: Any = importlib.import_module("streamlit")
-
 from soc_sentinel.correlation import CorrelationPolicyError
 from soc_sentinel.dashboard_services import (
     PROJECT_ROOT,
@@ -29,6 +27,8 @@ from soc_sentinel.dashboard_services import (
     resolve_incident,
 )
 from soc_sentinel.incidents import IncidentError
+
+st: Any = importlib.import_module("streamlit")
 
 DB_PATH = Path(
     os.environ.get("SOC_SENTINEL_DB", str(PROJECT_ROOT / "data" / "soc-sentinel-demo.sqlite3"))
