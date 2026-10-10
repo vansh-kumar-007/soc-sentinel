@@ -15,7 +15,7 @@ from soc_sentinel.detection.engine import evaluate_events
 from soc_sentinel.detection.rules import load_rules
 from soc_sentinel.incidents import (
     Incident, IncidentError, IncidentStatus, ResolutionClassification, add_note,
-    assign_analyst, correlate_and_persist, get_incident, incident_audit_history,
+    assign_analyst, correlate_and_persist, get_incident,
     list_incidents, show_incident, update_status,
 )
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file

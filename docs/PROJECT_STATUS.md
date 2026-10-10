@@ -40,7 +40,9 @@ Starting Phase 4 commit: f9c1042ed6912eb9c92441d49729bdf0c18781f8
 - [x] Timeline labels security-event versus application-audit timestamps and source provenance.
 - [x] Local CLI for correlate, list/show, lifecycle updates, analyst assignment, notes, timeline, and audit history.
 - [x] Synthetic positive/negative correlation, transitive/non-transitive, replay idempotency, lifecycle, migration rollback, unsupported schema version, and CLI tests.
-- [x] GitHub Actions passed 83 tests per Python version, Ruff lint, Ruff format, and mypy.\n\n## Phase 4 limitations
+- [x] GitHub Actions passed 83 tests per Python version, Ruff lint, Ruff format, and mypy.
+
+## Phase 4 limitations
 
 - Exact identifiers are not identity resolution; NAT, service accounts, reused host IDs, and incomplete telemetry can still produce false links or missed links.
 - Existing incidents are not merged automatically. A new alert matching several active incidents is assigned to one deterministic candidate.

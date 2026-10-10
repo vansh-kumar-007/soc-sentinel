@@ -59,7 +59,9 @@ def _build_parser() -> argparse.ArgumentParser:
         "demo-seed", help="Run the bundled synthetic scenario in a separate demo database."
     )
     demo.add_argument("--db", default="data/soc-sentinel-demo.sqlite3")
-    demo.add_argument("--reset", action="store_true", help="Explicitly recreate a demo-named database.")
+    demo.add_argument(
+        "--reset", action="store_true", help="Explicitly recreate a demo-named database."
+    )
     demo.add_argument("--json", action="store_true", dest="json_output")
     add_incident_parsers(subparsers)
     return parser
@@ -90,8 +92,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"Demo database: {result['database']}")
             print(f"Reset performed: {result['reset_performed']}")
             print(
-                f"Fixture records: {result['records_read']}; inserted: {result['events_inserted']}; "
-                f"duplicates: {result['event_duplicates']}; rejected: {result['records_rejected']}"
+                f"Fixture records: {result['records_read']}; "
+                f"inserted: {result['events_inserted']}; "
+                f"duplicates: {result['event_duplicates']}; "
+                f"rejected: {result['records_rejected']}"
             )
             print(f"Alerts generated: {result['alerts_generated']}")
             print(f"Incidents available: {len(result['incidents'])}")
