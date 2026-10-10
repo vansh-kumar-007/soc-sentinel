@@ -35,7 +35,7 @@ def write_benchmark(tmp_path: Path, data: dict[str, Any]) -> Path:
 def test_benchmark_validates_and_exposes_known_rule_limitations() -> None:
     report = evaluate_dataset(DATASET, RULES)
     assert report["dataset"]["scenario_count"] == 19
-    assert report["dataset"]["event_count"] == 74
+    assert report["dataset"]["event_count"] == 73
     assert report["rules"]["rule_ids"] == ["DET-001", "DET-002", "DET-003"]
     assert report["aggregate"]["tp"] >= 8
     assert report["aggregate"]["fp"] >= 2
