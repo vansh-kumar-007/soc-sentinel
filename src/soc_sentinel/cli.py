@@ -71,8 +71,9 @@ def _build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--output", default="reports/evaluation/")
     evaluate.add_argument("--json", action="store_true", dest="json_output")
     evaluate.add_argument(
-        "--fail-on-mismatch", action="store_true",
-        help="Return exit code 3 when the benchmark contains false positives or false negatives."
+        "--fail-on-mismatch",
+        action="store_true",
+        help="Return exit code 3 when the benchmark contains false positives or false negatives.",
     )
     add_incident_parsers(subparsers)
     return parser
