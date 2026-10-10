@@ -202,7 +202,7 @@ def test_minimum_shared_entity_requirement_filters_weak_links() -> None:
 
 def test_shared_event_is_an_explicit_supported_relationship() -> None:
     a, b = alert("a", "shared"), alert("b", "shared", host_id="different")
-    p = policy(strategies=["shared_event"])
+    p = policy(strategies=["shared_event"], minimum_shared_entities=1)
     decision = correlate_pair(a, b, alert_entities(a, {}), alert_entities(b, {}), p)
     assert decision is not None and decision.shared_values == {"event_id": "shared"}
 
@@ -227,7 +227,7 @@ def test_three_alert_transitive_chain_and_idempotent_repeat(tmp_path: Path) -> N
     a3 = alert("a3", "e4", 30, username="carol", source_ip="192.0.2.3", host_id="host-b")
     alerts = [a1, a2, a3]
     seed_db(db, events)
-    p = policy(strategies=["same_host"], allow_transitive=True)
+    p = policy(strategies=["same_host"], minimum_shared_entities=1, allow_transitive=True)
     first = correlate_and_persist(db, alerts, events, p)
     assert len(first) == 1 and first[0].alert_count == 3
     assert len(first[0].alert_ids) == 3
@@ -366,7 +366,7 @@ def test_new_alert_matching_two_incidents_is_assigned_once(tmp_path: Path) -> No
         event("host-b-later", 1010, host_id="host-b"),
     ]
     seed_db(db, events[:2])
-    p = policy(strategies=["same_host"], window_seconds=60)
+    p = policy(strategies=["same_host"], minimum_shared_entities=1, window_seconds=60)
     incident_a = correlate_and_persist(
         db, [alert("alert-a", "host-a-first", 0, host_id="host-a")], events[:1], p
     )[0]
@@ -459,6 +459,6 @@ def test_transitive_disabled_keeps_chain_components_separate(tmp_path: Path) -> 
         db,
         [first, bridge, last],
         events,
-        policy(strategies=["same_host"], allow_transitive=False),
+        policy(strategies=["same_host"], minimum_shared_entities=1, allow_transitive=False),
     )
     assert sorted(incident.alert_count for incident in incidents) == [1, 2]
