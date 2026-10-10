@@ -1,0 +1,27 @@
+rule_id: DET-001
+title: Authentication failure burst
+description: Detect five failed login events for the same username and source IP within ten minutes.
+enabled: true
+severity: high
+event_types:
+  - authentication
+detection:
+  type: threshold
+  conditions:
+    - field: action
+      operator: eq
+      value: login
+    - field: outcome
+      operator: eq
+      value: failure
+window: 600
+threshold: 5
+group_by:
+  - username
+  - source_ip
+mitre_attack:
+  - T1110
+tags:
+  - authentication
+  - brute-force
+  - credential-access
