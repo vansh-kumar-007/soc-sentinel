@@ -130,7 +130,7 @@ Suggested portfolio captures:
 
 ## Security and deployment posture
 
-The dashboard reads SQLite in read-only mode for queries and routes mutations through the existing transactional services. The synthetic lab accepts only known fixture names, shipped rule profiles, and the checked-in correlation policy. No arbitrary shell commands, YAML paths, or HTML supplied by telemetry are executed or rendered.
+The dashboard reads SQLite in read-only mode for queries and routes mutations through the existing transactional services. The checked-in Streamlit config disables usage-statistics reporting. The synthetic lab accepts only known fixture names, shipped rule profiles, and the checked-in correlation policy. No arbitrary shell commands, YAML paths, or HTML supplied by telemetry are executed or rendered.
 
 Do not bind the service to a public interface. An unauthenticated dashboard with incident details and write controls is unsafe to expose publicly. A future ₹0 deployment would still need authentication, authorization, secret/session handling, TLS, and an explicit persistence strategy; free-host filesystems may be ephemeral. No deployment is configured or performed in this phase.
 

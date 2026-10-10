@@ -27,7 +27,7 @@ $env:SOC_SENTINEL_DB = "data/soc-sentinel-demo.sqlite3"
 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 ```
 
-The application binds to loopback by default in the checked-in Streamlit config. The environment variable changes the local database file; it does not expose arbitrary fixture paths.
+The application binds to loopback by default in the checked-in Streamlit config, and Streamlit usage statistics are disabled. The environment variable changes the local database file; it does not expose arbitrary fixture paths.
 
 ## Workflow
 

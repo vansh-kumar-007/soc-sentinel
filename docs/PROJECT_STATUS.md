@@ -4,7 +4,7 @@ Last updated: 2026-10-10
 
 ## Current milestone
 
-**Phase 5 — SOC Investigation Dashboard: implementation submitted for final CI verification.** The starting Phase 4 baseline passed on Python 3.11, 3.12, and 3.13 in [run #188](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38052675751).
+**Phase 5 — SOC Investigation Dashboard: implemented and verified.** The implementation passed [GitHub Actions run #199](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38054736275) on Python 3.11, 3.12, and 3.13: 96 tests per version, Ruff lint, Ruff formatting, and mypy.
 
 Repository: https://github.com/vansh-kumar-007/soc-sentinel  
 Integration branch: main  
@@ -53,6 +53,8 @@ Starting Phase 4 commit: f9c1042ed6912eb9c92441d49729bdf0c18781f8
 
 ## Verification record
 
+- Phase 5 implementation: [GitHub Actions run #199](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38054736275), 96 tests per Python version; lint, formatting, and type checking passed.
+
 - Phase 2: [GitHub Actions run #72](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38049101494).
 - Phase 3 baseline: [GitHub Actions run #117](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38050260040).
 - Phase 4 implementation and final documentation: [GitHub Actions run #187](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38052619830).
@@ -68,9 +70,9 @@ The final documentation set passed the same CI workflow; this status-only update
 - [x] Synthetic lab runs only bundled fixtures, shipped rule profiles, and checked-in correlation policy.
 - [x] Reproducible eight-event demo fixture with authentication correlation, encoded PowerShell indicator, and benign lookalike.
 - [x] Demo seed/reset command protects the default working database and requires a demo-named target for reset.
-- [x] Dashboard service tests, CLI-independence test, and import smoke test added.
+- [x] Dashboard service tests, CLI-independence test, module import smoke test, and Streamlit AppTest startup smoke test added.
 - [x] Documentation includes local setup, safety notes, troubleshooting, screenshot checklist, and no-deploy policy.
-- [ ] Final-head CI verification pending.
+- [x] GitHub Actions run #199 passed 96 tests per Python version, Ruff lint, Ruff formatting, and mypy.
 
 ## Phase 5 limitations
 
