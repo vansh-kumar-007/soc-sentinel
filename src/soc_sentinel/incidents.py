@@ -147,7 +147,7 @@ def correlate_and_persist(database_path: str | Path, alerts: list[Alert], events
         rows = connection.execute("SELECT ia.alert_id, ia.incident_id, i.status FROM incident_alerts ia JOIN incidents i USING(incident_id)").fetchall()
         assignment = {row["alert_id"]: row["incident_id"] for row in rows}
         statuses = {row["incident_id"]: row["status"] for row in rows}
-        active_ids = set(statuses)
+        active_ids = {incident_id for incident_id, status in statuses.items() if status != "closed"}
         # Existing incidents are never merged; a new alert chooses one deterministic best match.
         for alert in sorted(incoming.values(), key=lambda item: (item.first_observed, item.alert_id)):
             if alert.alert_id in assignment:
