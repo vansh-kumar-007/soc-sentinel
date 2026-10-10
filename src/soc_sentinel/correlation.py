@@ -28,7 +28,7 @@ class CorrelationPolicy(BaseModel):
     policy_id: str = Field(pattern=r"^[A-Za-z0-9_.-]{1,80}$")
     window_seconds: int = Field(default=1800, ge=1, le=604800)
     strategies: list[StrategyName] = Field(min_length=1)
-    minimum_shared_entities: int = Field(default=1, ge=1, le=4)
+    minimum_shared_entities: int = Field(default=2, ge=1, le=4)
     allow_transitive: bool = False
 
     @model_validator(mode="after")
