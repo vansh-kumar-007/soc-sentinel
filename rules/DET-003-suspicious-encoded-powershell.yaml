@@ -1,0 +1,28 @@
+rule_id: DET-003
+title: Encoded PowerShell command execution
+description: Flag PowerShell process telemetry whose command line contains an encoded-command switch; investigate with surrounding process and user context.
+enabled: true
+severity: medium
+event_types:
+  - process
+detection:
+  type: match
+  conditions:
+    - field: process.name
+      operator: in
+      value:
+        - powershell.exe
+        - pwsh.exe
+        - powershell
+        - pwsh
+    - field: process.command_line
+      operator: icontains
+      value: -enc
+group_by:
+  - host_id
+mitre_attack:
+  - T1059.001
+tags:
+  - process
+  - powershell
+  - defense-evasion
