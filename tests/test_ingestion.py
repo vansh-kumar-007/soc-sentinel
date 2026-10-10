@@ -21,6 +21,7 @@ def test_non_strict_parser_collects_errors_and_continues() -> None:
     assert result.records_read == 4
     assert len(result.events) == 1
     assert result.records_rejected == 3
+    assert result.duplicate_records == 1
     assert [issue.line_number for issue in result.issues] == [2, 3, 4]
     assert "invalid JSON" in result.issues[0].message
     assert "schema validation failed" in result.issues[1].message
