@@ -6,7 +6,7 @@ Last updated: 2026-10-10
 
 **Phase 3 — Deterministic Detection Engineering Engine: implementation complete; code verification passed.**
 
-Phase 2 is complete and verified. Phase 3 source code, initial YAML rules, tests, and documentation have been committed to `main`. Phase 3 remains pending until the current head passes the full GitHub Actions matrix and the final remote tree is audited.
+Phase 2 is complete and verified. Phase 3 source code, initial YAML rules, tests, and documentation are committed to `main`. The implementation passed the complete Python 3.11–3.13 quality matrix; final documentation-only changes are being checked by CI.
 
 ## Phase checklist
 
@@ -72,4 +72,4 @@ Local-first runtime. SQLite is from Python's standard library; Pydantic and PyYA
 
 ## Next step
 
-After Phase 3 passes final CI and repository audit, Phase 4 should correlate evidence-linked alerts into incident cases with deterministic entity/time-window rules and an explicit incident lifecycle. Do not start Phase 4 before Phase 3 verification is complete.
+Phase 3 is complete. The next milestone, Phase 4, should correlate evidence-linked alerts into incident cases with deterministic entity/time-window rules and an explicit incident lifecycle. Phase 4 has not been started.
