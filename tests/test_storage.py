@@ -96,3 +96,28 @@ def test_future_schema_version_is_rejected(tmp_path: Path) -> None:
         )
     with pytest.raises(RuntimeError, match="newer than supported"):
         initialize_database(database_path)
+
+
+def test_failed_migration_rolls_back_schema_and_version(tmp_path: Path) -> None:
+    database_path = tmp_path / "broken-migration.sqlite3"
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "CREATE TABLE schema_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+        )
+        connection.execute(
+            "INSERT INTO schema_metadata (key, value) VALUES ('schema_version', '1')"
+        )
+        connection.execute("CREATE TABLE events (event_id TEXT PRIMARY KEY)")
+
+    with pytest.raises(sqlite3.OperationalError):
+        initialize_database(database_path)
+
+    with sqlite3.connect(database_path) as connection:
+        version = connection.execute(
+            "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
+        ).fetchone()
+        indexes = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_events_timestamp'"
+        ).fetchall()
+    assert version == ("1",)
+    assert indexes == []
