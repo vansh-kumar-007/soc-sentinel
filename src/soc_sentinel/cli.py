@@ -8,12 +8,9 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from pydantic import ValidationError
-
 from soc_sentinel import __version__
 from soc_sentinel.db import initialize_database, insert_events
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
-from soc_sentinel.schemas import SecurityEvent
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -56,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "check-db":
         try:
             database_path = initialize_database(args.path)
-        except (OSError, sqlite3.Error, RuntimeError) as exc:
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as exc:
             print(f"soc-sentinel: database initialization failed: {exc}", file=sys.stderr)
             return 1
         print(f"SQLite database ready: {database_path}")
@@ -74,7 +71,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         try:
             database_path, inserted, duplicates = insert_events(args.db, batch.events)
-        except (OSError, sqlite3.Error, RuntimeError) as exc:
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as exc:
             print(f"soc-sentinel: database ingestion failed: {exc}", file=sys.stderr)
             return 1
 
