@@ -33,7 +33,5 @@ def test_database_initialization_is_idempotent(tmp_path: Path) -> None:
     initialize_database(database_path)
 
     with sqlite3.connect(database_path) as connection:
-        rows = connection.execute(
-            "SELECT key, value FROM schema_metadata ORDER BY key"
-        ).fetchall()
+        rows = connection.execute("SELECT key, value FROM schema_metadata ORDER BY key").fetchall()
     assert rows == [("schema_version", "2")]
