@@ -7,7 +7,7 @@ The `correlation.yaml` file is data-only YAML loaded with PyYAML safe loading an
 - `policy_id`: short identifier for the policy used during an investigation.
 - `window_seconds`: maximum gap between alert observed intervals (1–604800 seconds). Overlapping intervals have a zero-second gap. The boundary is inclusive.
 - `strategies`: ordered list of supported exact-match relationships. The first matching strategy becomes the primary explanation for that alert pair; all corroborating matches are also recorded.
-- `minimum_shared_entities`: minimum count of distinct shared entity/evidence key-value pairs required (1–4). For example, a username+source-IP pair provides two distinct shared values, while a host-only match provides one.
+- `minimum_shared_entities`: minimum count of distinct shared entity/evidence key-value pairs required (1–4). The model and repository policy default to 2. A username+source-IP pair provides two distinct shared values, while a host-only match provides one; a host-only match therefore needs an explicitly lower threshold.
 - `allow_transitive`: when true, a connected component may include A–B and B–C even when A does not directly match C. When false, only direct relationships from the seed alert join a new incident.
 
 Supported strategies:
@@ -18,7 +18,7 @@ Supported strategies:
 - `same_username`: exact username is shared.
 - `same_source_ip`: exact source IP is shared.
 
-Missing values never count as shared. Severity and temporal proximity alone never correlate alerts. Shared source IP can be a NAT/proxy, shared username can represent a service account, and host identifiers depend on source quality; these are explainable links, not proof of common malicious intent.
+Missing values never count as shared. Severity and temporal proximity alone never correlate alerts. The Pydantic model defaults `allow_transitive` to false; the checked-in policy explicitly opts in, and that choice is recorded in incident creation audit history. Shared source IP can be a NAT/proxy, shared username can represent a service account, and host identifiers depend on source quality; these are explainable links, not proof of common malicious intent.
 
 ## Existing incidents and conflicts
 
