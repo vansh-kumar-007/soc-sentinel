@@ -117,7 +117,7 @@ def test_incident_lifecycle_notes_assignment_resolution_and_optimistic_version(t
     assert reopened.status == IncidentStatus.OPEN and reopened.resolution_classification is None
     history = incident_audit_history(db,reopened.incident_id)
     assert any(item["action"] == "status_changed" for item in history)
-    assert any(item["details"]["before"]["resolution_classification"] == "benign_positive" for item in history)
+    assert any(item["details"].get("before", {}).get("resolution_classification") == "benign_positive" for item in history)
     timeline = incident_timeline(db,reopened.incident_id)
     assert all("timestamp_type" in item and "provenance" in item for item in timeline)
     assert show_incident(db,reopened.incident_id)["alerts"][0]["alert_id"] == "alert-1"
