@@ -40,9 +40,9 @@ Phase 2 is implemented and verified by GitHub Actions on Python 3.11, 3.12, and 
 
 ## Verification record
 
-- **Final implementation commit:** `c736686eff8e7d7110b6bb186d04db7c2d44ab32`.
-- **GitHub Actions:** [run #70](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38048926052) completed successfully on that commit.
-- **Matrix:** Python 3.11, 3.12, and 3.13 each passed package installation, pytest (33 tests collected; all passed), `ruff check .`, `ruff format --check .`, and `mypy src tests`.
+- **Implementation commit:** `c736686eff8e7d7110b6bb186d04db7c2d44ab32`. **Final documentation commit:** `7bd17993a3d638663f34bfa0f95e63676f299d63`.
+- **GitHub Actions:** [run #71](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38048965133) completed successfully on the final documented commit.
+- **Matrix:** Python 3.11, 3.12, and 3.13 each passed package installation, pytest (30 tests collected; all passed), `ruff check .`, `ruff format --check .`, and `mypy src tests`.
 - **Local test execution:** GitHub Actions ran the suite against the remote checkout. This environment could not clone GitHub directly, so no claim is made that the whole suite was separately executed in a local container.
 - **Branch:** `main` only. No branches were created or deleted; no force-push or history rewrite occurred.
 - **Cost:** no paid service, trial, API key, external database, or cloud resource was used.
