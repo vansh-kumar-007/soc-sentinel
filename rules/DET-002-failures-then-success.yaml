@@ -1,0 +1,38 @@
+rule_id: DET-002
+title: Failed logins followed by successful login
+description: Detect a successful login preceded by at least three failed logins for the same username and source IP within ten minutes.
+enabled: true
+severity: high
+event_types:
+  - authentication
+detection:
+  type: sequence
+  stages:
+    - event_type: authentication
+      conditions:
+        - field: action
+          operator: eq
+          value: login
+        - field: outcome
+          operator: eq
+          value: failure
+    - event_type: authentication
+      conditions:
+        - field: action
+          operator: eq
+          value: login
+        - field: outcome
+          operator: eq
+          value: success
+window: 600
+threshold: 3
+group_by:
+  - username
+  - source_ip
+mitre_attack:
+  - T1110
+  - T1078
+tags:
+  - authentication
+  - sequence
+  - credential-access
