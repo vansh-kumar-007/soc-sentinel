@@ -4,49 +4,49 @@ Last updated: 2026-10-10
 
 ## Current milestone
 
-**Phase 1 — Repository Foundation: COMPLETE**
+**Phase 2 — Event Ingestion and Normalization**
 
-Phase 1 acceptance criteria are implemented and verified to the extent available. Event ingestion and all later-phase functionality are intentionally not started.
+Implementation is committed to `main`; verify automated CI before marking this phase complete. Do not begin Phase 3 until the acceptance criteria are verified.
 
-## Acceptance checklist
+## Phase checklist
 
-- [x] Installable Python package and CLI defined.
-- [x] Standard-library-only runtime dependencies.
-- [x] SQLite bootstrap command with safe, idempotent metadata-table creation.
-- [x] Meaningful behavioral tests for CLI and SQLite bootstrap.
-- [x] pytest, Ruff lint/format, and strict mypy configuration.
-- [x] GitHub Actions runs quality checks on Python 3.11, 3.12, and 3.13.
-- [x] Security policy, contribution guide, architecture, threat model, and decision record.
-- [x] Detection catalog and evaluation plan clearly marked as planned.
-- [x] Zero-cost/local-first architecture documented.
-- [x] Behavioral tests and syntax checks executed in a local verification copy.
-- [x] Full GitHub Actions workflow verified successful on the implementation commit.
-- [x] Final repository tree, branch list, and key file contents audited.
-- [ ] Select and add an actual software license before inviting reuse or accepting substantial external contributions.
+- [x] Pydantic normalized event schema for authentication, process, and network records.
+- [x] UTC timestamp normalization and explicit rejection of timezone-naive timestamps.
+- [x] IPv4/IPv6 validation and canonicalization.
+- [x] Optional process metadata, source provenance, and evaluation-only scenario metadata.
+- [x] Streaming line-by-line JSONL parsing with line-numbered errors.
+- [x] Strict mode aborts on first input error; non-strict mode continues and reports issues.
+- [x] Duplicate IDs within a file rejected and reported.
+- [x] Versioned SQLite migration from schema 1 to schema 2.
+- [x] Parameterized, transactional SQLite inserts and unique event IDs.
+- [x] CLI `ingest --input PATH --db PATH [--strict]`.
+- [x] Synthetic event fixture and schema/database/CLI tests added.
+- [x] Event schema, database schema, architecture, and README usage documented.
+- [ ] Verify tests, Ruff lint/format, and mypy in GitHub Actions for Python 3.11, 3.12, and 3.13.
+- [ ] Audit final committed tree, CLI output, and latest remote workflow result.
 
 ## Implemented behavior
 
-- `soc-sentinel --version` prints the package version and exits.
-- `soc-sentinel check-db PATH` creates parent directories, initializes SQLite, and creates a metadata table idempotently.
-- Expected filesystem and SQLite failures return an error message and non-zero status instead of a traceback.
-- Five tests cover version output, nested database creation, repeat initialization, metadata schema, and an invalid path.
+- Required fields: event ID, timezone-aware timestamp, event type, host ID, action, and source ID.
+- Authentication events require a username; process events require process metadata; network events require at least one IP.
+- Evaluation scenario metadata is preserved but documented as non-evidence.
+- Non-strict ingest skips blank lines, reports malformed JSON/schema/input duplicates, and continues through the file.
+- Strict ingest rejects on the first invalid record before opening/initializing the destination database.
+- Event IDs are the unique storage key. Repeated ingestion does not overwrite existing events.
+- Schema version 1 migrates in-place to version 2; a future version is rejected.
+- Unexpected insert errors abort and roll back the entire insertion batch.
 
 ## Verification record
 
-- **GitHub Actions:** run [#9](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38047686648) succeeded on implementation commit `400150263b54babae41d9dffa337177d667926a1`.
-- **Matrix:** Python 3.11, 3.12, and 3.13 all passed package installation, pytest (5 passed), `ruff check .`, `ruff format --check .`, and `mypy src tests`.
-- **Local verification:** 5 pytest tests passed and all Python source/test files passed AST syntax parsing in a local verification copy of the committed files. The execution environment could not resolve `github.com` for a direct clone, so GitHub Actions is the authoritative check against the actual remote checkout.
-- **Repository:** `main` is the only branch. The final source tree was inspected through GitHub, including the CI workflow and project status file.
-- **CI maintenance:** the workflow uses current Node 24-compatible major versions of `actions/checkout` and `actions/setup-python`; the earlier versions emitted a deprecation warning in an initial run.
+Pending: record final commit SHA and actual workflow result after the current tree has completed CI.
 
-## Not implemented yet
+## Limitations
 
-Event ingestion/normalization, YAML rule parsing, detection evaluation, alert/incident correlation, dashboard, evaluation datasets/metrics, deployment, and optional AI features. These belong to later phases.
+- The JSONL reader iterates file lines rather than reading the full source text into memory, but valid events are retained in the parsed batch before transactional persistence. Memory therefore scales with accepted events.
+- No configurable hard maximum for file size, line size, attributes size, or nested JSON complexity is implemented yet.
+- No real organizational logs, detections, alerting, or active response were used or implemented.
+- No paid infrastructure or API dependencies were introduced.
 
 ## Cost and infrastructure
 
-No paid service, trial, hosted runtime, external database, API key, telemetry, or cloud resource was created or modified. Core runtime dependencies remain empty; SQLite is provided by Python's standard library.
-
-## Next step
-
-**Phase 2 — Event Ingestion and Normalization.** Begin only in a separate, small implementation step: define and test the normalized event schema and bounded JSONL reader before adding persistence or detection rules.
+Core processing is local. SQLite comes from Python's standard library. Pydantic is the only new runtime dependency. No cloud resource, trial, payment method, paid API, or external database was used.
