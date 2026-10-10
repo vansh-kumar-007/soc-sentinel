@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, field_serializer
 
 
 class EventType(StrEnum):
@@ -96,6 +96,11 @@ class SecurityEvent(BaseModel):
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("timestamp must include a timezone offset")
         return value.astimezone(UTC)
+
+    @field_serializer("timestamp")
+    def serialize_timestamp(self, value: datetime) -> str:
+        """Serialize normalized timestamps using an unambiguous UTC Z suffix."""
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
     @field_validator("source_ip", "destination_ip")
     @classmethod
