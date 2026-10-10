@@ -32,9 +32,7 @@ class Alert(BaseModel):
     mitre_attack: list[str]
 
 
-def evaluate_events(
-    events: list[SecurityEvent], rules: list[DetectionRule]
-) -> list[Alert]:
+def evaluate_events(events: list[SecurityEvent], rules: list[DetectionRule]) -> list[Alert]:
     """Evaluate rules and return stable, ordered alerts.
 
     Input is de-duplicated by event_id (first occurrence wins), then ordered by
@@ -141,14 +139,12 @@ def _sequence_alerts(rule: DetectionRule, events: list[SecurityEvent]) -> list[A
         key = _group_key(rule, event)
         if key is None:
             continue
-        if (
-            event.event_type == first_stage.event_type
-            and _matches_all(event, first_stage.conditions)
+        if event.event_type == first_stage.event_type and _matches_all(
+            event, first_stage.conditions
         ):
             grouped_first[key].append(event)
-        if (
-            event.event_type == second_stage.event_type
-            and _matches_all(event, second_stage.conditions)
+        if event.event_type == second_stage.event_type and _matches_all(
+            event, second_stage.conditions
         ):
             grouped_second[key].append(event)
 
