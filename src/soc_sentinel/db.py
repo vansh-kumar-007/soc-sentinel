@@ -26,8 +26,7 @@ def initialize_database(database_path: str | Path) -> Path:
     try:
         connection.execute("BEGIN")
         connection.execute(
-            "CREATE TABLE IF NOT EXISTS schema_metadata "
-            "(key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+            "CREATE TABLE IF NOT EXISTS schema_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )
         row = connection.execute(
             "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
