@@ -143,7 +143,9 @@ def test_duplicate_evidence_constraints_are_rejected(tmp_path: Path) -> None:
     data = read_benchmark()
     evidence = data["scenarios"][0]["expected_detections"][0]["evidence_event_ids"]
     evidence.append(evidence[0])
-    with pytest.raises(EvaluationError, match="evidence_event_ids must not contain duplicates"):
+    with pytest.raises(
+        EvaluationError, match="evidence_event_ids must not contain duplicates"
+    ):
         evaluate_dataset(write_benchmark(tmp_path, data), RULES)
 
 
@@ -204,15 +206,17 @@ def test_cli_writes_reports_and_returns_success_for_completed_measurement(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     output = tmp_path / "reports"
-    code = main([
-        "evaluate",
-        "--dataset",
-        str(DATASET),
-        "--rules",
-        str(RULES),
-        "--output",
-        str(output),
-    ])
+    code = main(
+        [
+            "evaluate",
+            "--dataset",
+            str(DATASET),
+            "--rules",
+            str(RULES),
+            "--output",
+            str(output),
+        ]
+    )
     assert code == 0
     stdout = capsys.readouterr().out
     assert "Precision:" in stdout
@@ -221,16 +225,21 @@ def test_cli_writes_reports_and_returns_success_for_completed_measurement(
 
 
 def test_cli_can_fail_on_benchmark_mismatches(tmp_path: Path) -> None:
-    assert main([
-        "evaluate",
-        "--dataset",
-        str(DATASET),
-        "--rules",
-        str(RULES),
-        "--output",
-        str(tmp_path / "reports"),
-        "--fail-on-mismatch",
-    ]) == 3
+    assert (
+        main(
+            [
+                "evaluate",
+                "--dataset",
+                str(DATASET),
+                "--rules",
+                str(RULES),
+                "--output",
+                str(tmp_path / "reports"),
+                "--fail-on-mismatch",
+            ]
+        )
+        == 3
+    )
 
 
 def test_cli_invalid_dataset_returns_configuration_error(
