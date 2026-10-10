@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   format:
-    if: startsWith(github.event.head_commit.message, 'chore: format Phase 4')
+    if: ${{ startsWith(github.event.head_commit.message, 'chore: format Phase 4') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
