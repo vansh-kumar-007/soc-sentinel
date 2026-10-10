@@ -11,6 +11,13 @@ UTF-8 JSONL
   -> deterministic alert relationships with explicit explanations
   -> transactional SQLite alerts / incidents / relationships / audit
   -> incident CLI + framework-independent dashboard services\n  -> local Streamlit dashboard, chronological timeline, lifecycle operations
+
+Independent evaluation path:
+  versioned synthetic ground truth + raw synthetic event records
+  -> strict benchmark/event validation
+  -> existing deterministic detection engine (no duplicated predicates)
+  -> one-to-one expectation/alert evidence matching
+  -> deterministic per-rule/aggregate JSON and Markdown reports
 ```
 
 ## Module boundaries
@@ -22,7 +29,8 @@ UTF-8 JSONL
 - correlation.py: strict Pydantic correlation policy, safe YAML loading, entity extraction, time-window matching, and human-readable relationship explanations.
 - incidents.py: incident persistence, assignment, notes, optimistic version checks, lifecycle transitions, audit history, and timeline assembly.
 - incident_cli.py: end-to-end correlate and local investigation commands.\n- dashboard_services.py: framework-independent summary/search/detail/evidence services and allow-listed synthetic pipeline; query-only SQLite access for reads.\n- demo.py: explicit, demo-target-guarded synthetic database seed/reset command.\n- dashboard.py: optional Streamlit UI; it delegates to dashboard_services.py and Phase 4 lifecycle methods.
-- cli.py: existing CLI plus incident command integration.
+- cli.py: existing CLI plus incident and evaluation command integration.
+- evaluation.py: independent benchmark validation, fingerprints, one-to-one evidence matching, metrics, and deterministic reports; it does not access SQLite, correlation, or incident lifecycle.
 
 ## Correlation semantics
 
@@ -48,4 +56,5 @@ Schema v1 held metadata; v2 added normalized events; v3 adds alert payloads, inc
 - Events and alert payloads are stored locally; the event parser retains accepted input events in memory for evaluation.
 - Correlation strategies are deliberately simple exact matches. Shared NAT addresses, service accounts, and reused host identifiers can create explainable false links; analysts must review evidence.
 - Alert generation is stateless; incident persistence and assignment are stateful and idempotent for stable alert IDs.
-- Phase 5 adds an optional local Streamlit dashboard and synthetic demo workflow. Phase 6 labeled detection evaluation has not started.
+- Phase 5 adds an optional local Streamlit dashboard and synthetic demo workflow.
+- Phase 6 adds a small synthetic benchmark and reproducible detection-quality reports. Ground truth is separate from event records; benchmark metrics are not real-world performance estimates.
