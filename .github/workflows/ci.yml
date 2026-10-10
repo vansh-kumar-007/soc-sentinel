@@ -37,8 +37,6 @@ jobs:
         run: pytest
       - name: Lint
         run: ruff check .
-      - name: Preview Ruff formatting
-        run: ruff format --diff . || true
       - name: Verify formatting
         run: ruff format --check .
       - name: Type check
