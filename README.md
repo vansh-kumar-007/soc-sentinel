@@ -14,7 +14,7 @@ SOC Sentinel is a defensive security project for validating security-event recor
 
 ## Current status
 
-Phase 3 — Deterministic Detection Engineering Engine (implemented; CI verified). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+Phase 4 — Alert Correlation and Incident Investigation (implementation in progress; final CI verification pending). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Requirements
 
@@ -88,9 +88,31 @@ Use `--strict` to abort if any nonblank input record fails JSON/schema validatio
 
 The rule format is documented in [docs/RULE_FORMAT.md](docs/RULE_FORMAT.md), and the shipped rules, evidence, false positives, and limitations are described in [docs/DETECTION_CATALOG.md](docs/DETECTION_CATALOG.md). A detection is an investigative lead, not proof of malicious activity. The engine never uses scenario labels as evidence.
 
-## Planned next
+## Incident investigation CLI
 
-Alert correlation, incident investigation UI, and comprehensive labeled detection evaluation remain future phases. Do not treat scenario metadata in input files as detection evidence.
+Run the end-to-end detection and correlation pipeline against normalized JSONL. The default policy is `correlation.yaml`; all state is local SQLite:
+
+```bash
+soc-sentinel correlate --input data/samples/authentication.jsonl --rules rules/ --db data/soc-sentinel.sqlite3
+soc-sentinel list-incidents --db data/soc-sentinel.sqlite3
+soc-sentinel show-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX
+soc-sentinel incident-timeline --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX
+soc-sentinel incident-audit --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX
+```
+
+Use the current version printed by `show-incident` for concurrency-safe updates:
+
+```bash
+soc-sentinel update-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --status in_progress --version 2
+soc-sentinel assign-analyst --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --analyst "Analyst 1" --version 3
+soc-sentinel add-note --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --note "Reviewed authentication evidence." --version 4
+soc-sentinel resolve-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --classification inconclusive --summary "More telemetry required." --version 5
+soc-sentinel reopen-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --version 6
+```
+
+Use `--json` on listing, inspection, timeline, audit, and correlation commands for machine-readable output. Incident IDs are deterministic from their initial alert set; human-readable references use the `INC-` prefix. Correlation rules and lifecycle semantics are documented in [docs/CORRELATION_POLICY.md](docs/CORRELATION_POLICY.md) and [docs/INCIDENT_WORKFLOW.md](docs/INCIDENT_WORKFLOW.md).
+
+Phase 5, the local investigation dashboard, has not started. Do not treat scenario metadata in input files as detection evidence.
 
 ## Security and privacy
 
