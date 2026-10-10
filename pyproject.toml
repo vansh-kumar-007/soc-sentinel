@@ -45,6 +45,8 @@ select = ["E", "F", "I", "UP", "B"]
 "src/soc_sentinel/incidents.py" = ["E501"]
 "src/soc_sentinel/dashboard.py" = ["E501"]
 "src/soc_sentinel/dashboard_services.py" = ["E501"]
+"src/soc_sentinel/evaluation.py" = ["E501"]
+"tests/test_evaluation.py" = ["E501"]
 "tests/test_dashboard_services.py" = ["E501"]
 
 [tool.ruff.format]
