@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 
 from soc_sentinel.db import initialize_database
 
 
-def test_database_has_schema_version_metadata(tmp_path) -> None:
+def test_database_has_schema_version_metadata(tmp_path: Path) -> None:
     database_path = tmp_path / "soc.sqlite3"
 
     returned_path = initialize_database(database_path)
@@ -20,7 +21,7 @@ def test_database_has_schema_version_metadata(tmp_path) -> None:
     assert row == ("1",)
 
 
-def test_database_initialization_is_idempotent(tmp_path) -> None:
+def test_database_initialization_is_idempotent(tmp_path: Path) -> None:
     database_path = tmp_path / "soc.sqlite3"
 
     initialize_database(database_path)
