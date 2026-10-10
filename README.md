@@ -18,7 +18,8 @@ SOC Sentinel turns normalized synthetic security events into evidence-linked ale
 - Searchable incident explorer with status, severity, time, analyst, host, and username filters.
 - Investigation workspace with linked alerts, event evidence, correlation explanations, timeline provenance, notes, and audit history.
 - Lifecycle controls for assignment, status, resolution, reopening, and confirmed terminal closure.
-- Synthetic lab to run bundled JSONL fixtures through the real detection and correlation services.\n- Reproducible synthetic detection evaluation with independent ground truth, evidence-aware matching, per-rule metrics, and JSON/Markdown reports.
+- Synthetic lab to run bundled JSONL fixtures through the real detection and correlation services.
+- Reproducible synthetic detection evaluation with independent ground truth, evidence-aware matching, per-rule metrics, and JSON/Markdown reports.
 - CLI and dashboard share the same application layer; Streamlit is an optional extra and is not imported by normal CLI startup.
 
 ## Architecture
@@ -26,8 +27,12 @@ SOC Sentinel turns normalized synthetic security events into evidence-linked ale
 ```mermaid
 flowchart TD
   A[Bundled synthetic JSONL] --> B[Validated SecurityEvent]
+  E[Independent evaluation benchmark] --> V[Evaluation validation and matcher]
+  V --> B
   B --> C[Deterministic detection engine]
-  C --> D[Evidence-linked alerts]\n  V --> R[Deterministic JSON and Markdown reports]
+  C --> D[Evidence-linked alerts]
+  V --> R[Deterministic JSON and Markdown reports]
+  V --> R[Deterministic JSON and Markdown reports]
   D --> E[Explainable correlation service]
   E --> F[(SQLite schema v3)]
   F --> G[Framework-independent dashboard services]
