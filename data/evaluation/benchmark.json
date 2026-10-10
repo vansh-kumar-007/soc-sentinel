@@ -1,0 +1,1234 @@
+{
+  "dataset_version": 1,
+  "title": "SOC Sentinel Synthetic Detection Benchmark v1",
+  "description": "Deterministic fictional scenarios for the shipped DET-001 authentication burst, DET-002 failures-followed-by-success sequence, and DET-003 encoded PowerShell indicator.",
+  "ground_truth_policy": "Expected detections were authored from each scenario's stated investigative intent and rule contract before execution. Expected rule IDs and evidence references are stored only here, never inside event records. Benign lookalikes remain negative even when the existing detector fires, so mismatches are measured rather than relabeled after observing output.",
+  "scenarios": [
+    {
+      "scenario_id": "auth-clear-burst",
+      "title": "Clear authentication failure burst",
+      "description": "Five failed logins for one fictional account and source within the configured 600-second window.",
+      "category": "authentication",
+      "priority": "high",
+      "investigation_objective": "Verify DET-001 fires at the five-event threshold and preserves its five evidence IDs.",
+      "events": [
+        {
+          "event_id": "burst-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "burst-2",
+          "timestamp": "2026-10-10T00:00:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "burst-3",
+          "timestamp": "2026-10-10T00:01:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "burst-4",
+          "timestamp": "2026-10-10T00:01:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "burst-5",
+          "timestamp": "2026-10-10T00:02:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [
+        {
+          "expectation_id": "expect-auth-clear-burst",
+          "rule_id": "DET-001",
+          "evidence_event_ids": [
+            "burst-1",
+            "burst-2",
+            "burst-3",
+            "burst-4",
+            "burst-5"
+          ]
+        }
+      ],
+      "rationale": "Five same-group failures fit within the 600-second window; expected evidence is independently specified.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-below-threshold",
+      "title": "Burst below threshold",
+      "description": "Four failed logins share a username and source, one below the configured threshold.",
+      "category": "authentication",
+      "priority": "medium",
+      "investigation_objective": "Verify four failures do not satisfy DET-001 or DET-002.",
+      "events": [
+        {
+          "event_id": "below-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "below-2",
+          "timestamp": "2026-10-10T00:00:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "below-3",
+          "timestamp": "2026-10-10T00:00:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "below-4",
+          "timestamp": "2026-10-10T00:01:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "The configured burst threshold is five and the sequence rule also requires three failures plus a later success.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-failures-then-success",
+      "title": "Failures followed by success",
+      "description": "Three failures are followed by a successful login for the same account and source.",
+      "category": "authentication",
+      "priority": "high",
+      "investigation_objective": "Verify DET-002 evidence contains the three earlier failures and the later success.",
+      "events": [
+        {
+          "event_id": "sequence-fail-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "sequence-fail-2",
+          "timestamp": "2026-10-10T00:00:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "sequence-fail-3",
+          "timestamp": "2026-10-10T00:01:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "sequence-success",
+          "timestamp": "2026-10-10T00:01:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "success",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [
+        {
+          "expectation_id": "expect-auth-sequence",
+          "rule_id": "DET-002",
+          "evidence_event_ids": [
+            "sequence-fail-1",
+            "sequence-fail-2",
+            "sequence-fail-3",
+            "sequence-success"
+          ]
+        }
+      ],
+      "rationale": "Three strictly earlier failures and the success share the same grouping key within 600 seconds.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-failures-no-success",
+      "title": "Failures without success",
+      "description": "Three failed logins occur with no later successful login.",
+      "category": "authentication",
+      "priority": "medium",
+      "investigation_objective": "Verify failure-only activity does not trigger the failure-then-success sequence.",
+      "events": [
+        {
+          "event_id": "no-success-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "no-success-2",
+          "timestamp": "2026-10-10T00:00:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "no-success-3",
+          "timestamp": "2026-10-10T00:01:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "There is no second-stage success event and the burst threshold is not reached.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-outside-burst-window",
+      "title": "Authentication events outside window",
+      "description": "Five failures are spread so no 600-second trailing window contains all five.",
+      "category": "authentication",
+      "priority": "medium",
+      "investigation_objective": "Check the threshold window boundary and ensure events are not aggregated across time windows.",
+      "events": [
+        {
+          "event_id": "outside-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "outside-2",
+          "timestamp": "2026-10-10T00:02:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "outside-3",
+          "timestamp": "2026-10-10T00:05:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "outside-4",
+          "timestamp": "2026-10-10T00:07:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "outside-5",
+          "timestamp": "2026-10-10T00:10:01Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "The five events span 601 seconds; every trailing 600-second window contains fewer than five.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-groups-must-not-merge",
+      "title": "Different users and sources",
+      "description": "Failure events across different usernames and source IPs would reach five only if grouping were incorrectly combined.",
+      "category": "authentication",
+      "priority": "high",
+      "investigation_objective": "Verify the engine groups by exact username and source IP rather than combining unrelated activity.",
+      "events": [
+        {
+          "event_id": "groups-a-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "casey.lee",
+          "source_ip": "192.0.2.20",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "groups-a-2",
+          "timestamp": "2026-10-10T00:00:10Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "casey.lee",
+          "source_ip": "192.0.2.20",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "groups-a-3",
+          "timestamp": "2026-10-10T00:00:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "casey.lee",
+          "source_ip": "192.0.2.20",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "groups-b-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "morgan.kim",
+          "source_ip": "192.0.2.20",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "groups-b-2",
+          "timestamp": "2026-10-10T00:00:10Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "morgan.kim",
+          "source_ip": "192.0.2.20",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "groups-c-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "casey.lee",
+          "source_ip": "198.51.100.30",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "groups-c-2",
+          "timestamp": "2026-10-10T00:00:10Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "casey.lee",
+          "source_ip": "198.51.100.30",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "No individual username/source-IP pair reaches five events.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-missing-source-ip",
+      "title": "Missing authentication grouping field",
+      "description": "Five failures have a username but no source IP, so the configured exact grouping key is incomplete.",
+      "category": "authentication",
+      "priority": "medium",
+      "investigation_objective": "Verify missing grouping fields do not get coerced into a shared null group.",
+      "events": [
+        {
+          "event_id": "missing-ip-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": null,
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "missing-ip-2",
+          "timestamp": "2026-10-10T00:00:10Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": null,
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "missing-ip-3",
+          "timestamp": "2026-10-10T00:00:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": null,
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "missing-ip-4",
+          "timestamp": "2026-10-10T00:00:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": null,
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "missing-ip-5",
+          "timestamp": "2026-10-10T00:00:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": null,
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "The existing rules require username and source IP for grouping; missing source IP is not evidence of a common source.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-benign-mistyped-passwords",
+      "title": "Benign mistyped-password burst",
+      "description": "A fictional employee mistypes a password repeatedly before correcting it; the event pattern is intentionally indistinguishable from a burst using current fields.",
+      "category": "authentication",
+      "priority": "low",
+      "investigation_objective": "Measure whether DET-001 flags a realistic benign lookalike and record the resulting false positive if it does.",
+      "events": [
+        {
+          "event_id": "mistype-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "pat.taylor",
+          "source_ip": "192.0.2.45",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "mistype-2",
+          "timestamp": "2026-10-10T00:00:15Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "pat.taylor",
+          "source_ip": "192.0.2.45",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "mistype-3",
+          "timestamp": "2026-10-10T00:00:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "pat.taylor",
+          "source_ip": "192.0.2.45",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "mistype-4",
+          "timestamp": "2026-10-10T00:00:45Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "pat.taylor",
+          "source_ip": "192.0.2.45",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "mistype-5",
+          "timestamp": "2026-10-10T00:01:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "pat.taylor",
+          "source_ip": "192.0.2.45",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "Ground truth classifies this as benign user error, while the available event fields contain no MFA, device-risk, or analyst context to disambiguate it.",
+      "limitations": [
+        "The expected benign label is independent of event shape and demonstrates a known limit of count-only authentication rules."
+      ]
+    },
+    {
+      "scenario_id": "auth-exact-window-boundary",
+      "title": "Exact 600-second boundary",
+      "description": "Five failures occur at offsets 0, 150, 300, 450, and 600 seconds.",
+      "category": "authentication",
+      "priority": "high",
+      "investigation_objective": "Verify the configured inclusive trailing-window boundary is measured as documented.",
+      "events": [
+        {
+          "event_id": "boundary-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "boundary-2",
+          "timestamp": "2026-10-10T00:02:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "boundary-3",
+          "timestamp": "2026-10-10T00:05:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "boundary-4",
+          "timestamp": "2026-10-10T00:07:30Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "boundary-5",
+          "timestamp": "2026-10-10T00:10:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [
+        {
+          "expectation_id": "expect-auth-boundary",
+          "rule_id": "DET-001",
+          "evidence_event_ids": [
+            "boundary-1",
+            "boundary-2",
+            "boundary-3",
+            "boundary-4",
+            "boundary-5"
+          ]
+        }
+      ],
+      "rationale": "The existing threshold engine includes an event exactly at the window start.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-success-before-failures",
+      "title": "Success precedes failures",
+      "description": "A success occurs before three failures for the same account and source.",
+      "category": "authentication",
+      "priority": "medium",
+      "investigation_objective": "Verify DET-002 requires failures strictly earlier than the success.",
+      "events": [
+        {
+          "event_id": "success-first",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "success",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "later-failure-1",
+          "timestamp": "2026-10-10T00:00:01Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "later-failure-2",
+          "timestamp": "2026-10-10T00:00:02Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "later-failure-3",
+          "timestamp": "2026-10-10T00:00:03Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "A success before the failures does not satisfy the ordered sequence.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "auth-sequence-outside-window",
+      "title": "Sequence outside configured window",
+      "description": "Three failures are followed by success more than 600 seconds after the first failure.",
+      "category": "authentication",
+      "priority": "medium",
+      "investigation_objective": "Verify DET-002 does not combine failures and success outside its configured window.",
+      "events": [
+        {
+          "event_id": "late-seq-fail-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "late-seq-fail-2",
+          "timestamp": "2026-10-10T00:00:01Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "late-seq-fail-3",
+          "timestamp": "2026-10-10T00:00:02Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "late-seq-success",
+          "timestamp": "2026-10-10T00:10:03Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "success",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "At the success timestamp the trailing window excludes the earlier failures.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "process-encoded-command",
+      "title": "Encoded PowerShell command switch",
+      "description": "Process telemetry reports a PowerShell process with the encoded-command switch.",
+      "category": "process-execution",
+      "priority": "high",
+      "investigation_objective": "Verify DET-003 fires and references the exact process event.",
+      "events": [
+        {
+          "event_id": "encoded-good",
+          "timestamp": "2026-10-10T00:33:20Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4100,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -NoProfile -EncodedCommand SQBFAFgA"
+          },
+          "source_id": "synthetic-evaluation-process"
+        }
+      ],
+      "expected_detections": [
+        {
+          "expectation_id": "expect-process-encoded",
+          "rule_id": "DET-003",
+          "evidence_event_ids": [
+            "encoded-good"
+          ]
+        }
+      ],
+      "rationale": "The process name and command line satisfy the rule's configured case-insensitive substring conditions.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "process-encoding-lookalike",
+      "title": "Benign -Encoding lookalike",
+      "description": "A PowerShell command reads a local inventory file using the ordinary -Encoding parameter.",
+      "category": "process-execution",
+      "priority": "low",
+      "investigation_objective": "Verify the rule distinguishes -Encoding from -EncodedCommand.",
+      "events": [
+        {
+          "event_id": "encoding-benign",
+          "timestamp": "2026-10-10T00:33:20Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4100,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -Command Get-Content .\\inventory.txt -Encoding UTF8"
+          },
+          "source_id": "synthetic-evaluation-process"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "The command line contains -Encoding but not the encoded-command switch.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "process-ordinary-powershell",
+      "title": "Ordinary PowerShell execution",
+      "description": "A plain PowerShell command runs a common process-listing cmdlet without an encoded-command switch.",
+      "category": "process-execution",
+      "priority": "low",
+      "investigation_objective": "Verify ordinary PowerShell process telemetry does not trigger DET-003.",
+      "events": [
+        {
+          "event_id": "plain-powershell",
+          "timestamp": "2026-10-10T00:33:20Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4100,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -NoProfile -Command Get-Process"
+          },
+          "source_id": "synthetic-evaluation-process"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "The process is PowerShell but lacks the rule's encoded-command indicator.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "process-switch-case-variation",
+      "title": "Encoded switch case variation",
+      "description": "The encoded-command switch uses mixed capitalization.",
+      "category": "process-execution",
+      "priority": "high",
+      "investigation_objective": "Verify case-insensitive switch matching remains deterministic.",
+      "events": [
+        {
+          "event_id": "encoded-case",
+          "timestamp": "2026-10-10T00:33:20Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4100,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -NoProfile -eNcOdEdCoMmAnD SQBFAFgA"
+          },
+          "source_id": "synthetic-evaluation-process"
+        }
+      ],
+      "expected_detections": [
+        {
+          "expectation_id": "expect-process-case",
+          "rule_id": "DET-003",
+          "evidence_event_ids": [
+            "encoded-case"
+          ]
+        }
+      ],
+      "rationale": "The configured operator is case-insensitive, so casing should not affect the outcome.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "process-incomplete-telemetry",
+      "title": "Incomplete process telemetry",
+      "description": "The process name is present but command-line telemetry is missing.",
+      "category": "process-execution",
+      "priority": "medium",
+      "investigation_objective": "Verify incomplete command-line telemetry does not satisfy the configured condition.",
+      "events": [
+        {
+          "event_id": "no-command-line",
+          "timestamp": "2026-10-10T00:40:00Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-09",
+          "username": "demo.operator",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "pid": 4400
+          },
+          "source_id": "synthetic-evaluation-process"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "The rule cannot infer an encoded switch when command-line telemetry is absent.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "process-encoded-substring-lookalike",
+      "title": "Encoded-switch substring lookalike",
+      "description": "A benign-looking argument begins with the encoded-command text but is not the actual switch token.",
+      "category": "process-execution",
+      "priority": "medium",
+      "investigation_objective": "Measure whether substring matching overmatches command-line text that resembles the switch.",
+      "events": [
+        {
+          "event_id": "substring-lookalike",
+          "timestamp": "2026-10-10T00:33:20Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4100,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -EncodedCommandlet status"
+          },
+          "source_id": "synthetic-evaluation-process"
+        }
+      ],
+      "expected_detections": [],
+      "rationale": "The independently labeled scenario expects no detection because the argument is not the actual encoded-command switch; this deliberately probes the current contains-style condition.",
+      "limitations": [
+        "The rule may produce a false positive because its current predicate checks a substring rather than token boundaries."
+      ]
+    },
+    {
+      "scenario_id": "auth-two-independent-bursts",
+      "title": "Two independent authentication bursts",
+      "description": "Two distinct account/source pairs each have five failed logins in the same scenario.",
+      "category": "authentication",
+      "priority": "high",
+      "investigation_objective": "Verify independent groups produce separate alerts and each alert maps to only its own expected evidence.",
+      "events": [
+        {
+          "event_id": "multi-a-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.a",
+          "source_ip": "192.0.2.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-a-2",
+          "timestamp": "2026-10-10T00:00:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.a",
+          "source_ip": "192.0.2.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-a-3",
+          "timestamp": "2026-10-10T00:00:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.a",
+          "source_ip": "192.0.2.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-a-4",
+          "timestamp": "2026-10-10T00:01:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.a",
+          "source_ip": "192.0.2.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-a-5",
+          "timestamp": "2026-10-10T00:01:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.a",
+          "source_ip": "192.0.2.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-b-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.b",
+          "source_ip": "198.51.100.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-b-2",
+          "timestamp": "2026-10-10T00:00:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.b",
+          "source_ip": "198.51.100.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-b-3",
+          "timestamp": "2026-10-10T00:00:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.b",
+          "source_ip": "198.51.100.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-b-4",
+          "timestamp": "2026-10-10T00:01:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.b",
+          "source_ip": "198.51.100.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "multi-b-5",
+          "timestamp": "2026-10-10T00:01:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "demo.user.b",
+          "source_ip": "198.51.100.60",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [
+        {
+          "expectation_id": "expect-multi-a",
+          "rule_id": "DET-001",
+          "evidence_event_ids": [
+            "multi-a-1",
+            "multi-a-2",
+            "multi-a-3",
+            "multi-a-4",
+            "multi-a-5"
+          ]
+        },
+        {
+          "expectation_id": "expect-multi-b",
+          "rule_id": "DET-001",
+          "evidence_event_ids": [
+            "multi-b-1",
+            "multi-b-2",
+            "multi-b-3",
+            "multi-b-4",
+            "multi-b-5"
+          ]
+        }
+      ],
+      "rationale": "The scenario has two independently labeled detections for the same rule; matching must be one-to-one and evidence-specific.",
+      "limitations": [
+        "Synthetic events do not model production identity or sensor diversity."
+      ]
+    },
+    {
+      "scenario_id": "cross-rule-out-of-order-and-replay",
+      "title": "Mixed rules, shuffled events, and replay",
+      "description": "A single scenario mixes an authentication sequence and encoded PowerShell event; records are deliberately out of chronological order and one authentication record is replayed.",
+      "category": "cross-rule",
+      "priority": "high",
+      "investigation_objective": "Verify all three rules are evaluated in one scenario, event ordering is deterministic, and replayed IDs are de-duplicated.",
+      "events": [
+        {
+          "event_id": "mix-encoded",
+          "timestamp": "2026-10-10T00:05:00Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4100,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -EncodedCommand SQBFAFgA"
+          },
+          "source_id": "synthetic-evaluation-process"
+        },
+        {
+          "event_id": "mix-success",
+          "timestamp": "2026-10-10T00:01:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "success",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "mix-fail-3",
+          "timestamp": "2026-10-10T00:00:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "mix-fail-2",
+          "timestamp": "2026-10-10T00:00:20Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
+          "event_id": "mix-fail-1",
+          "timestamp": "2026-10-10T00:00:00Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "failure",
+          "source_id": "synthetic-evaluation-auth"
+        }
+      ],
+      "expected_detections": [
+        {
+          "expectation_id": "expect-mixed-burst",
+          "rule_id": "DET-001",
+          "evidence_event_ids": [
+            "mix-fail-1",
+            "mix-fail-2",
+            "mix-fail-3"
+          ]
+        },
+        {
+          "expectation_id": "expect-mixed-sequence",
+          "rule_id": "DET-002",
+          "evidence_event_ids": [
+            "mix-fail-1",
+            "mix-fail-2",
+            "mix-fail-3",
+            "mix-success"
+          ]
+        },
+        {
+          "expectation_id": "expect-mixed-process",
+          "rule_id": "DET-003",
+          "evidence_event_ids": [
+            "mix-encoded"
+          ]
+        }
+      ],
+      "rationale": "The event records are unique ground-truth entries. replay_event_ids explicitly duplicates one input to exercise production first-occurrence-wins de-duplication.",
+      "limitations": [
+        "The engine de-duplicates by event_id and retains the first occurrence; this benchmark repeats identical content, not conflicting payloads."
+      ],
+      "replay_event_ids": [
+        "mix-fail-1"
+      ]
+    }
+  ]
+}
