@@ -14,7 +14,7 @@ SOC Sentinel is a defensive security project for validating security-event recor
 
 ## Current status
 
-Phase 2 — Event Ingestion and Normalization. See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+Phase 3 — Deterministic Detection Engineering Engine (implementation and verification in progress). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Requirements
 
@@ -64,9 +64,33 @@ Exit codes: `0` ingestion completed (non-strict mode may report rejected lines);
 
 See [docs/EVENT_SCHEMA.md](docs/EVENT_SCHEMA.md) for the normalized record contract and [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) for SQLite migrations and storage.
 
+## Detection engineering CLI
+
+Validate the shipped declarative YAML rules:
+
+```bash
+soc-sentinel validate-rules --rules rules/
+```
+
+Run the deterministic detection engine against synthetic or authorized JSONL telemetry:
+
+```bash
+soc-sentinel detect --input data/samples/authentication.jsonl --rules rules/
+```
+
+Emit machine-readable alert output:
+
+```bash
+soc-sentinel detect --input data/samples/authentication.jsonl --rules rules/ --json
+```
+
+Use `--strict` to abort if any nonblank input record fails JSON/schema validation. Default non-strict mode evaluates valid records and reports rejected rows. Exit codes for these commands: `0` operation completed; `1` input I/O failure; `2` rule validation failure; `3` strict detection input validation failure.
+
+The rule format is documented in [docs/RULE_FORMAT.md](docs/RULE_FORMAT.md), and the shipped rules, evidence, false positives, and limitations are described in [docs/DETECTION_CATALOG.md](docs/DETECTION_CATALOG.md). A detection is an investigative lead, not proof of malicious activity. The engine never uses scenario labels as evidence.
+
 ## Planned next
 
-Deterministic YAML rule evaluation, evidence-linked alerts, time/entity correlation, an incident investigation UI, and reproducible detection evaluation are not yet implemented. Do not treat the scenario metadata in input files as detection evidence.
+Alert correlation, incident investigation UI, and comprehensive labeled detection evaluation remain future phases. Do not treat scenario metadata in input files as detection evidence.
 
 ## Security and privacy
 
