@@ -58,7 +58,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run CLI. Exit codes: 0 success; 1 I/O/storage; 2 configuration; 3 strict input; 4 incident operation error."""
+    """Run the CLI.
+
+    Exit codes: 0 success; 1 I/O/storage; 2 configuration; 3 strict input; 4 incident operation error.
+    """
     parser = _build_parser()
     args = parser.parse_args(argv)
     if args.command in {
@@ -158,7 +161,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Alerts triggered: {len(alerts)}")
         for alert in alerts:
             print(
-                f"- {alert.rule_id} [{alert.severity.value}] {alert.rule_title} (alert_id={alert.alert_id})"
+                f"- {alert.rule_id} [{alert.severity.value}] {alert.rule_title} "
+                f"(alert_id={alert.alert_id})"
             )
             print(f"  Group: {json.dumps(alert.grouping_context, sort_keys=True)}")
             print(f"  Events: {alert.event_count}; evidence: {', '.join(alert.evidence_event_ids)}")
