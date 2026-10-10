@@ -135,6 +135,9 @@ def correlate_pair(
                 strategy=strategy,
                 shared_values=shared,
                 time_gap_seconds=gap,
-                explanation=f"Matched {strategy} ({details}); observed-interval gap {gap:g}s is within the {policy.window_seconds}s policy window.",
+                explanation=(
+                    f"Matched {strategy} ({details}); observed-interval gap {gap:g}s "
+                    f"is within the {policy.window_seconds}s policy window."
+                ),
             )
     return None
