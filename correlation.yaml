@@ -1,7 +1,7 @@
 # Exact entity equality only; missing values never match.
 policy_id: default-local-v1
 window_seconds: 1800
-minimum_shared_entities: 1
+minimum_shared_entities: 2
 allow_transitive: true
 strategies:
   - same_username_and_source_ip
