@@ -24,17 +24,13 @@ def initialize_database(database_path: str | Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as connection:
         connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS schema_metadata (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
-            )
-            """
+            "CREATE TABLE IF NOT EXISTS schema_metadata "
+            "(key TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )
-        row = connection.execute(
-            "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
-        ).fetchone()
-        version = int(row[0]) if row else 0
+        rows = connection.execute("SELECT value FROM schema_metadata WHERE key = 'schema_version'").fetchall()
+        if len(rows) > 1:
+            raise RuntimeError("database contains duplicate schema_version metadata")
+        version = int(rows[0][0]) if rows else 0
         if version > _SCHEMA_VERSION:
             raise RuntimeError(
                 f"database schema version {version} is newer than supported {_SCHEMA_VERSION}"
