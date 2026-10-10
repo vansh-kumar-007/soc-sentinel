@@ -49,6 +49,7 @@ def severity_label(value: str) -> str:
     """Use consistent severity labels without rendering telemetry as HTML."""
     return SEVERITY_DISPLAY.get(value, "⬜ UNKNOWN")
 
+
 PAGES = ["Operations overview", "Incident explorer", "Alerts & evidence", "Synthetic lab"]
 CSS = """
 <style>

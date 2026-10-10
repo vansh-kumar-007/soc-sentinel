@@ -219,7 +219,6 @@ def test_dashboard_module_imports_without_starting_ui() -> None:
     assert callable(module.main)
 
 
-
 def test_dashboard_app_starts_without_creating_a_database(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
