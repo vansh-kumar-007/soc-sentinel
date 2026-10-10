@@ -4,7 +4,9 @@ Last updated: 2026-10-10
 
 ## Current milestone
 
-**Phase 5 — SOC Investigation Dashboard: implemented and verified.** The implementation passed [GitHub Actions run #199](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38054736275) on Python 3.11, 3.12, and 3.13: 96 tests per version, Ruff lint, Ruff formatting, and mypy.
+**Phase 6 — Reproducible Detection Evaluation: implementation in progress; final CI verification pending.**
+
+Phase 5 remains implemented and verified; see the previous verification record below. The implementation passed [GitHub Actions run #199](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38054736275) on Python 3.11, 3.12, and 3.13: 96 tests per version, Ruff lint, Ruff formatting, and mypy.
 
 Repository: https://github.com/vansh-kumar-007/soc-sentinel  
 Integration branch: main  
@@ -83,6 +85,24 @@ The final documentation set passed the same CI workflow; this status-only update
 - No real screenshots have been captured or committed.
 - No public deployment or external infrastructure changes were performed.
 
+## Phase 6 — Reproducible detection evaluation
+
+- [x] Audited the Phase 5 final commit, branch state, CI run #200, evaluation plan, event schema, rule loader, detection engine, CLI, dashboard, tests, and docs.
+- [x] Added an independently labeled versioned benchmark at `data/evaluation/benchmark.json` with 19 scenarios, 73 unique event records, and 10 expected detection instances.
+- [x] Added strict dataset/event validation, ground-truth isolation checks, unique ID and reference validation, replay semantics, stable fingerprints, and deterministic matching around the existing production detection engine.
+- [x] Added aggregate/per-rule TP, FP, FN, supplemental TN, precision, recall, F1, scenario outcomes, and false-positive/false-negative details.
+- [x] Added JSON and Markdown report generation and the `soc-sentinel evaluate` CLI with optional mismatch exit status.
+- [x] Added a dashboard evaluation page that consumes the evaluator's canonical report object rather than implementing separate metrics.
+- [x] Added evaluator validation, matching, metric, determinism, report, and CLI tests.
+- [x] Updated README, architecture, and evaluation methodology.
+- [ ] Final full test suite, Ruff lint/format, and mypy verification on Python 3.11, 3.12, and 3.13.
+- [ ] Final-head GitHub Actions verification and final repository hygiene audit.
+- [ ] Publish measured benchmark outcomes and update this checklist after CI results are confirmed.
+
+### Phase 6 findings to review
+
+The benchmark deliberately labels a five-failure mistyped-password scenario as benign and includes a command-line substring lookalike for DET-003. Any alert on these scenarios is recorded as a false positive, not used to rewrite ground truth. A token-boundary improvement to DET-003 is a separately justified future rule change and is not silently bundled into the evaluation implementation.
+
 ## Next milestone
 
-**Phase 6 — Reproducible detection evaluation and precision/recall measurement.** Do not begin until Phase 5's final commit passes the full CI matrix.
+**Phase 7 is not approved or started.** No public deployment or new phase work should begin until Phase 6 is fully verified and reported.
