@@ -81,7 +81,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI.
 
-    Exit codes: 0 success; 1 I/O/storage; 2 configuration; 3 strict input;
+    Exit codes: 0 success; 1 I/O/storage; 2 configuration; 3 evaluation mismatch or strict input;
     4 incident operation error.
     """
     parser = _build_parser()
