@@ -63,6 +63,17 @@ def _build_parser() -> argparse.ArgumentParser:
         "--reset", action="store_true", help="Explicitly recreate a demo-named database."
     )
     demo.add_argument("--json", action="store_true", dest="json_output")
+    evaluate = subparsers.add_parser(
+        "evaluate", help="Measure detection quality against an independent synthetic benchmark."
+    )
+    evaluate.add_argument("--dataset", default="data/evaluation/benchmark.json")
+    evaluate.add_argument("--rules", default="rules/")
+    evaluate.add_argument("--output", default="reports/evaluation/")
+    evaluate.add_argument("--json", action="store_true", dest="json_output")
+    evaluate.add_argument(
+        "--fail-on-mismatch", action="store_true",
+        help="Return exit code 3 when the benchmark contains false positives or false negatives."
+    )
     add_incident_parsers(subparsers)
     return parser
 
@@ -75,6 +86,34 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = _build_parser()
     args = parser.parse_args(argv)
+    if args.command == "evaluate":
+        from soc_sentinel.evaluation import EvaluationError, evaluate_dataset, write_reports
+
+        try:
+            report = evaluate_dataset(args.dataset, args.rules)
+            json_path, markdown_path = write_reports(report, args.output)
+        except EvaluationError as exc:
+            print(f"soc-sentinel: evaluation failed: {exc}", file=sys.stderr)
+            return 2
+        if args.json_output:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        else:
+            aggregate = report["aggregate"]
+            print(f"Dataset: {report['dataset']['title']}")
+            print(f"Scenarios: {report['summary']['scenario_count']}")
+            print(
+                f"TP: {aggregate['tp']}  FP: {aggregate['fp']}  "
+                f"FN: {aggregate['fn']}  TN*: {aggregate['tn']}"
+            )
+            print(
+                f"Precision: {aggregate['precision']}  Recall: {aggregate['recall']}  "
+                f"F1: {aggregate['f1']}"
+            )
+            print(f"Reports: {json_path} and {markdown_path}")
+            print("* TN is a supplemental count of negative scenario-rule opportunities.")
+        if args.fail_on_mismatch and (report["aggregate"]["fp"] or report["aggregate"]["fn"]):
+            return 3
+        return 0
     if args.command == "demo-seed":
         from soc_sentinel.demo import seed_demo_database
 
