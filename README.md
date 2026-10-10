@@ -14,7 +14,7 @@ SOC Sentinel is a defensive security project for validating security-event recor
 
 ## Current status
 
-Phase 4 — Alert Correlation and Incident Investigation (implementation in progress; final CI verification pending). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+Phase 4 — Alert Correlation and Incident Investigation (implemented; CI verified). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Requirements
 
