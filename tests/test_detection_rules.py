@@ -130,3 +130,46 @@ def test_duplicate_rule_ids_are_rejected(tmp_path: Path) -> None:
     second.write_text(yaml.safe_dump(payload), encoding="utf-8")
     with pytest.raises(RuleValidationError, match="duplicate rule_id"):
         load_rules(tmp_path)
+
+
+
+def test_field_value_type_mismatch_is_rejected(tmp_path: Path) -> None:
+    path = write_rule(
+        tmp_path,
+        {
+            "rule_id": "DET-900",
+            "title": "Wrong value type",
+            "description": "A sufficiently long description for this test.",
+            "severity": "low",
+            "event_types": ["process"],
+            "detection": {
+                "type": "match",
+                "conditions": [
+                    {"field": "process.pid", "operator": "eq", "value": "not-a-number"}
+                ],
+            },
+        },
+    )
+    with pytest.raises(RuleValidationError, match="requires numeric comparison values"):
+        load_rules(path)
+
+
+def test_process_field_cannot_be_used_by_authentication_rule(tmp_path: Path) -> None:
+    path = write_rule(
+        tmp_path,
+        {
+            "rule_id": "DET-900",
+            "title": "Incompatible event family",
+            "description": "A sufficiently long description for this test.",
+            "severity": "low",
+            "event_types": ["authentication"],
+            "detection": {
+                "type": "match",
+                "conditions": [
+                    {"field": "process.name", "operator": "eq", "value": "powershell.exe"}
+                ],
+            },
+        },
+    )
+    with pytest.raises(RuleValidationError, match="not available for every configured event type"):
+        load_rules(path)
