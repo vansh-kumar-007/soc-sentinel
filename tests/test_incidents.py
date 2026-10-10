@@ -366,9 +366,12 @@ def test_new_alert_matching_two_incidents_is_assigned_once(tmp_path: Path) -> No
     incident_a = correlate_and_persist(
         db, [alert("alert-a", "host-a-first", 0, host_id="host-a")], events[:1], p
     )[0]
-    incident_b = correlate_and_persist(
+    incidents_after_b = correlate_and_persist(
         db, [alert("alert-b", "host-b-first", 1000, host_id="host-b")], events[1:2], p
-    )[0]
+    )
+    incident_b = next(
+        incident for incident in incidents_after_b if incident.incident_id != incident_a.incident_id
+    )
     assert incident_a.incident_id != incident_b.incident_id
     seed_db(db, events[2:])
     spanning = alert("alert-spanning", "host-a-later", 10, host_id="host-a").model_copy(
