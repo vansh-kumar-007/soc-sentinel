@@ -41,6 +41,12 @@ def test_benchmark_validates_and_exposes_known_rule_limitations() -> None:
     assert report["aggregate"]["tp"] >= 8
     assert report["aggregate"]["fp"] >= 2
     assert report["aggregate"]["fn"] == 0
+    assert report["aggregate"]["tp"] == 10
+    assert report["aggregate"]["fp"] == 2
+    assert report["aggregate"]["tn"] == 46
+    assert report["aggregate"]["precision"] == 0.833333
+    assert report["aggregate"]["recall"] == 1.0
+    assert report["aggregate"]["f1"] == 0.909091
     assert report["summary"]["false_positive_count"] == report["aggregate"]["fp"]
     assert report["summary"]["false_negative_count"] == 0
     assert {item["scenario_id"] for item in report["false_positives"]} >= {
