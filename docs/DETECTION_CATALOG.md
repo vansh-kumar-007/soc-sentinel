@@ -40,3 +40,8 @@ Rules ship as YAML under the rules directory. Their schema and operator grammar 
 ## Evaluation discipline
 
 Detection tests use synthetic events and test both suspicious cases and benign lookalikes. Scenario labels are not queried by the engine. Comprehensive labeled precision/recall evaluation belongs to Phase 6.
+
+
+## Incident correlation (separate from detections)
+
+The incident workflow consumes Phase 3 alerts and does not change rule firing logic. The checked-in correlation policy requires at least two distinct shared entity/evidence values within a configured observed-time window. A username+source-IP pair can meet that threshold; a single shared host, username, source IP, event ID, matching severity, or timestamp proximity alone cannot. Transitive links are controlled by policy and each relationship stores its matching strategy, shared values, time gap, and explanation. Correlation is an investigation aid, not a conclusion that activity is malicious.
