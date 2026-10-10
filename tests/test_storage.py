@@ -37,7 +37,7 @@ def test_phase_one_schema_migrates_to_v2_idempotently(tmp_path: Path) -> None:
             row[0]
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'index'")
         }
-    assert version == ("2",)
+    assert version == ("3",)
     assert {"schema_metadata", "events"} <= tables
     assert {"idx_events_timestamp", "idx_events_type_timestamp", "idx_events_host"} <= indexes
 
