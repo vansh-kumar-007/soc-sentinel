@@ -8,17 +8,23 @@ from pathlib import Path
 from soc_sentinel.db import initialize_database
 
 
-def test_database_has_schema_version_metadata(tmp_path: Path) -> None:
+def test_database_has_current_schema_version_metadata(tmp_path: Path) -> None:
     database_path = tmp_path / "soc.sqlite3"
 
     returned_path = initialize_database(database_path)
 
     assert returned_path == database_path.resolve()
     with sqlite3.connect(database_path) as connection:
-        row = connection.execute(
+        version = connection.execute(
             "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
         ).fetchone()
-    assert row == ("1",)
+        tables = {
+            row[0] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+    assert version == ("2",)
+    assert "events" in tables
 
 
 def test_database_initialization_is_idempotent(tmp_path: Path) -> None:
@@ -28,5 +34,7 @@ def test_database_initialization_is_idempotent(tmp_path: Path) -> None:
     initialize_database(database_path)
 
     with sqlite3.connect(database_path) as connection:
-        rows = connection.execute("SELECT key, value FROM schema_metadata ORDER BY key").fetchall()
-    assert rows == [("schema_version", "1")]
+        rows = connection.execute(
+            "SELECT key, value FROM schema_metadata ORDER BY key"
+        ).fetchall()
+    assert rows == [("schema_version", "2")]
