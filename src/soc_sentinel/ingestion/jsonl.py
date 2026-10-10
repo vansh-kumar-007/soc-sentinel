@@ -40,8 +40,7 @@ class ParsedBatch:
 
 
 def _iter_lines(stream: TextIO) -> Iterator[tuple[int, str]]:
-    for line_number, raw_line in enumerate(stream, start=1):
-        yield line_number, raw_line
+    yield from enumerate(stream, start=1)
 
 
 def parse_jsonl_stream(stream: TextIO, *, strict: bool = False) -> ParsedBatch:
