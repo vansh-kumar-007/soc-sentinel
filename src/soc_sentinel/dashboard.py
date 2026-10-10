@@ -50,7 +50,7 @@ def severity_label(value: str) -> str:
     return SEVERITY_DISPLAY.get(value, "⬜ UNKNOWN")
 
 
-PAGES = ["Operations overview", "Incident explorer", "Alerts & evidence", "Synthetic lab"]
+PAGES = ["Operations overview", "Incident explorer", "Alerts & evidence", "Synthetic lab", "Detection evaluation"]
 CSS = """
 <style>
 .block-container{padding-top:1.5rem;padding-bottom:2.5rem;max-width:1500px}
@@ -646,6 +646,86 @@ def synthetic_lab(db: Path) -> None:
         )
 
 
+def evaluation_page() -> None:
+    """Display canonical metrics from the framework-independent evaluation module."""
+    header(
+        "Detection evaluation",
+        "Reproducible rule-quality measurements from the committed synthetic benchmark.",
+    )
+    from soc_sentinel.evaluation import EvaluationError, evaluate_dataset
+
+    dataset_path = PROJECT_ROOT / "data" / "evaluation" / "benchmark.json"
+    rules_path = PROJECT_ROOT / "rules"
+    try:
+        report = evaluate_dataset(dataset_path, rules_path)
+    except (EvaluationError, OSError, ValueError) as exc:
+        st.error(f"Evaluation could not complete: {exc}")
+        return
+
+    st.warning(
+        "Synthetic benchmark only. These metrics demonstrate repeatable evaluation mechanics; "
+        "they are not estimates of real-world SOC performance."
+    )
+    aggregate = report["aggregate"]
+    cols = st.columns(3)
+    cols[0].metric("Precision", "null" if aggregate["precision"] is None else f"{aggregate['precision']:.3f}")
+    cols[1].metric("Recall", "null" if aggregate["recall"] is None else f"{aggregate['recall']:.3f}")
+    cols[2].metric("F1 score", "null" if aggregate["f1"] is None else f"{aggregate['f1']:.3f}")
+    cols = st.columns(4)
+    for col, label, key in zip(
+        cols,
+        ["True positives", "False positives", "False negatives", "True negatives*"],
+        ["tp", "fp", "fn", "tn"],
+        strict=True,
+    ):
+        col.metric(label, aggregate[key])
+    st.caption(
+        f"{report['dataset']['scenario_count']} scenarios · "
+        f"{report['dataset']['event_count']} source events · "
+        f"{report['rules']['enabled_rule_count']} enabled rules"
+    )
+    st.subheader("Per-rule performance")
+    st.dataframe(report["per_rule"], use_container_width=True, hide_index=True)
+    st.subheader("Scenario outcomes")
+    st.dataframe(
+        [
+            {
+                "Scenario": item["scenario_id"],
+                "Title": item["title"],
+                "Category": item["category"],
+                "Outcome": item["outcome"],
+                "Expected": len(item["expected_detections"]),
+                "Matched": len(item["matched_detections"]),
+                "Missed": len(item["missed_detections"]),
+                "Unexpected": len(item["unexpected_detections"]),
+            }
+            for item in report["scenario_results"]
+        ],
+        use_container_width=True,
+        hide_index=True,
+    )
+    with st.expander("Unexpected alerts / false positives"):
+        if report["false_positives"]:
+            st.dataframe(report["false_positives"], use_container_width=True, hide_index=True)
+        else:
+            st.success("No unexpected alerts in this benchmark.")
+    with st.expander("Missed expected detections / false negatives"):
+        if report["false_negatives"]:
+            st.dataframe(report["false_negatives"], use_container_width=True, hide_index=True)
+        else:
+            st.success("No missed expected detections in this benchmark.")
+    st.caption(
+        "* TN is a supplemental count of negative scenario-rule opportunities; it is not used "
+        "in precision, recall, or F1. Full methodology and reproducible JSON/Markdown reports "
+        "are documented in docs/EVALUATION.md."
+    )
+    st.code(
+        "soc-sentinel evaluate --dataset data/evaluation/benchmark.json "
+        "--rules rules/ --output reports/evaluation/",
+        language="bash",
+    )
+
+
 def main() -> None:
     st.set_page_config(page_title="SOC Sentinel", page_icon="🛡️", layout="wide")
     st.markdown(CSS, unsafe_allow_html=True)
@@ -659,6 +739,9 @@ def main() -> None:
         st.caption(str(DB_PATH))
         st.caption("Local SQLite · no external services")
         st.markdown('<span style="color:#56c5b4">●</span> Local-only mode', unsafe_allow_html=True)
+    if nav == "Detection evaluation":
+        evaluation_page()
+        return
     if not DB_PATH.is_file():
         header("SOC Sentinel", "Evidence-led investigation on your local machine.")
         st.info("The configured database does not exist yet. Run this from the repository root:")
@@ -674,6 +757,8 @@ def main() -> None:
             incident_explorer(DB_PATH)
         elif nav == "Alerts & evidence":
             alerts_page(DB_PATH)
+        elif nav == "Detection evaluation":
+            evaluation_page()
         else:
             synthetic_lab(DB_PATH)
     except (
