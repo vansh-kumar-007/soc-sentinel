@@ -18,7 +18,7 @@ def initialize_database(database_path: str | Path) -> Path:
     """Initialize or migrate a local database to the current schema.
 
     Existing Phase 1 version-1 databases are migrated forward. Migration DDL and
-    metadata changes run in an explicit SQLite transaction; future versions are rejected.
+    metadata changes run in one explicit SQLite transaction; future versions are rejected.
     """
     path = Path(database_path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -101,7 +101,6 @@ def insert_events(
     try:
         connection.execute("BEGIN")
         for event in events:
-            payload = event.model_dump(mode="python")
             cursor = connection.execute(
                 """
                 INSERT OR IGNORE INTO events (
@@ -111,19 +110,19 @@ def insert_events(
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    payload["event_id"],
-                    payload["timestamp"].astimezone(UTC).isoformat().replace("+00:00", "Z"),
-                    payload["event_type"].value,
-                    payload["host_id"],
-                    payload["username"],
-                    payload["source_ip"],
-                    payload["destination_ip"],
-                    payload["action"].value,
-                    payload["outcome"].value,
-                    _json_or_none(payload["process"]),
-                    payload["source_id"],
-                    _json_or_none(payload["scenario"]),
-                    json.dumps(payload["attributes"], separators=(",", ":"), sort_keys=True),
+                    event.event_id,
+                    event.timestamp.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+                    event.event_type.value,
+                    event.host_id,
+                    event.username,
+                    event.source_ip,
+                    event.destination_ip,
+                    event.action.value,
+                    event.outcome.value,
+                    _json_or_none(event.process),
+                    event.source_id,
+                    _json_or_none(event.scenario),
+                    json.dumps(event.attributes, separators=(",", ":"), sort_keys=True),
                 ),
             )
             if cursor.rowcount == 1:
