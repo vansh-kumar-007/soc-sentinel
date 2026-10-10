@@ -216,7 +216,7 @@ def handle_incident_command(args: argparse.Namespace) -> int:
     except (OSError, UnicodeError) as exc:
         print(f"soc-sentinel: incident command could not read input: {exc}", file=sys.stderr)
         return 1
-    except sqlite3.Error as exc:
+    except (sqlite3.Error, RuntimeError) as exc:
         print(f"soc-sentinel: incident database operation failed: {exc}", file=sys.stderr)
         return 1
     except (RuleValidationError, CorrelationPolicyError) as exc:
