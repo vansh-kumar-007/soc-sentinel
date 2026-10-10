@@ -709,7 +709,22 @@ def incident_timeline(database_path: str | Path, incident_id: str) -> list[dict[
     connection = _connect(database_path)
     try:
         incident = get_incident(database_path, incident_id)
-        items: list[dict[str, Any]] = []
+        items: list[dict[str, Any]] = [
+            {
+                "timestamp": _stamp(incident.first_observed),
+                "timestamp_type": "security_event",
+                "kind": "first_observed",
+                "provenance": "incident_summary",
+                "incident_id": incident.incident_id,
+            },
+            {
+                "timestamp": _stamp(incident.last_observed),
+                "timestamp_type": "security_event",
+                "kind": "last_observed",
+                "provenance": "incident_summary",
+                "incident_id": incident.incident_id,
+            },
+        ]
         for row in connection.execute(
             """SELECT a.payload_json FROM incident_alerts ia JOIN alerts a USING(alert_id)
             WHERE ia.incident_id=? ORDER BY a.first_observed, a.alert_id""",
