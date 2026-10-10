@@ -80,6 +80,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Records read: {batch.records_read}")
         print(f"Records accepted by schema: {len(batch.events)}")
         print(f"Records rejected: {batch.records_rejected}")
+        print(f"Duplicate records in input: {batch.duplicate_records}")
         print(f"Duplicates already in database: {duplicates}")
         print(f"Events inserted: {inserted}")
         if batch.issues:
