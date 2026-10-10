@@ -270,3 +270,30 @@ def test_unknown_dataset_metadata_is_rejected(tmp_path: Path) -> None:
     data["labels_generated_by_detector"] = True
     with pytest.raises(EvaluationError, match="invalid evaluation dataset"):
         evaluate_dataset(write_benchmark(tmp_path, data), RULES)
+
+
+def test_duplicate_evidence_in_actual_alert_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import UTC, datetime
+
+    import soc_sentinel.evaluation as evaluation
+    from soc_sentinel.detection.engine import Alert
+    from soc_sentinel.detection.rules import Severity
+
+    duplicate_evidence_alert = Alert(
+        alert_id="alert-duplicate-evidence",
+        rule_id="DET-001",
+        rule_title="Authentication failure burst",
+        severity=Severity.HIGH,
+        first_observed=datetime(2026, 10, 10, tzinfo=UTC),
+        last_observed=datetime(2026, 10, 10, tzinfo=UTC),
+        event_count=2,
+        evidence_event_ids=["burst-1", "burst-1"],
+        grouping_context={"username": "alex.rivera", "source_ip": "192.0.2.10"},
+        rationale="Synthetic malformed alert for evaluator integrity testing.",
+        mitre_attack=["T1110"],
+    )
+    monkeypatch.setattr(evaluation, "evaluate_events", lambda events, rules: [duplicate_evidence_alert])
+    with pytest.raises(EvaluationError, match="duplicate evidence IDs"):
+        evaluate_dataset(DATASET, RULES)
