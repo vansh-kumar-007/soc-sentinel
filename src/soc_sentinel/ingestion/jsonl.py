@@ -94,9 +94,7 @@ def parse_jsonl_file(path: str | Path, *, strict: bool = False) -> ParsedBatch:
         return parse_jsonl_stream(stream, strict=strict)
 
 
-def _record_issue(
-    result: ParsedBatch, line_number: int, message: str, *, strict: bool
-) -> None:
+def _record_issue(result: ParsedBatch, line_number: int, message: str, *, strict: bool) -> None:
     if strict:
         raise ValueError(f"line {line_number}: {message}")
     result.records_rejected += 1
