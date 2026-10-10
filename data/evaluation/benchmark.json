@@ -1132,6 +1132,53 @@
       "investigation_objective": "Verify all three rules are evaluated in one scenario, event ordering is deterministic, and replayed IDs are de-duplicated.",
       "events": [
         {
+          "event_id": "mix-benign-encoding",
+          "timestamp": "2026-10-10T00:05:01Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4301,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -Command Get-Content .\\inventory.txt -Encoding UTF8"
+          },
+          "source_id": "synthetic-evaluation-process"
+        },
+        {
+          "event_id": "mix-encoded",
+          "timestamp": "2026-10-10T00:05:00Z",
+          "event_type": "process",
+          "host_id": "lab-endpoint-02",
+          "username": "demo.operator",
+          "source_ip": "203.0.113.27",
+          "action": "execute",
+          "outcome": "unknown",
+          "process": {
+            "name": "powershell.exe",
+            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "pid": 4100,
+            "parent_pid": 900,
+            "command_line": "powershell.exe -EncodedCommand SQBFAFgA"
+          },
+          "source_id": "synthetic-evaluation-process"
+        },
+        {
+          "event_id": "mix-success",
+          "timestamp": "2026-10-10T00:01:40Z",
+          "event_type": "authentication",
+          "host_id": "lab-ws-01",
+          "username": "alex.rivera",
+          "source_ip": "192.0.2.10",
+          "action": "login",
+          "outcome": "success",
+          "source_id": "synthetic-evaluation-auth"
+        },
+        {
           "event_id": "mix-fail-5",
           "timestamp": "2026-10-10T00:01:20Z",
           "event_type": "authentication",
@@ -1154,8 +1201,8 @@
           "source_id": "synthetic-evaluation-auth"
         },
         {
-          "event_id": "mix-fail-1",
-          "timestamp": "2026-10-10T00:00:00Z",
+          "event_id": "mix-fail-3",
+          "timestamp": "2026-10-10T00:00:40Z",
           "event_type": "authentication",
           "host_id": "lab-ws-01",
           "username": "alex.rivera",
@@ -1176,8 +1223,8 @@
           "source_id": "synthetic-evaluation-auth"
         },
         {
-          "event_id": "mix-fail-3",
-          "timestamp": "2026-10-10T00:00:40Z",
+          "event_id": "mix-fail-1",
+          "timestamp": "2026-10-10T00:00:00Z",
           "event_type": "authentication",
           "host_id": "lab-ws-01",
           "username": "alex.rivera",
@@ -1185,35 +1232,6 @@
           "action": "login",
           "outcome": "failure",
           "source_id": "synthetic-evaluation-auth"
-        },
-        {
-          "event_id": "mix-success",
-          "timestamp": "2026-10-10T00:01:40Z",
-          "event_type": "authentication",
-          "host_id": "lab-ws-01",
-          "username": "alex.rivera",
-          "source_ip": "192.0.2.10",
-          "action": "login",
-          "outcome": "success",
-          "source_id": "synthetic-evaluation-auth"
-        },
-        {
-          "event_id": "mix-encoded",
-          "timestamp": "2026-10-10T00:05:00Z",
-          "event_type": "process",
-          "host_id": "lab-endpoint-02",
-          "username": "demo.operator",
-          "source_ip": "203.0.113.27",
-          "action": "execute",
-          "outcome": "unknown",
-          "process": {
-            "name": "powershell.exe",
-            "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-            "pid": 4100,
-            "parent_pid": 900,
-            "command_line": "powershell.exe -EncodedCommand SQBFAFgA"
-          },
-          "source_id": "synthetic-evaluation-process"
         }
       ],
       "expected_detections": [
