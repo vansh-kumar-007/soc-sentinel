@@ -81,8 +81,15 @@ def _parse_stamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
 
 
-def _connect(path: str | Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(initialize_database(path), timeout=10)
+def _connect(path: str | Path, *, read_only: bool = False) -> sqlite3.Connection:
+    resolved = Path(path).expanduser().resolve()
+    if read_only:
+        if not resolved.is_file():
+            raise IncidentError(f"database not found: {resolved}")
+        connection = sqlite3.connect(f"{resolved.as_uri()}?mode=ro", uri=True, timeout=10)
+        connection.execute("PRAGMA query_only = ON")
+    else:
+        connection = sqlite3.connect(initialize_database(resolved), timeout=10)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
@@ -489,8 +496,10 @@ def correlate_and_persist(
     return list_incidents(path)
 
 
-def list_incidents(database_path: str | Path, *, status: str | None = None) -> list[Incident]:
-    connection = _connect(database_path)
+def list_incidents(
+    database_path: str | Path, *, status: str | None = None, read_only: bool = False
+) -> list[Incident]:
+    connection = _connect(database_path, read_only=read_only)
     try:
         if status is None:
             rows = connection.execute(
@@ -510,8 +519,10 @@ def list_incidents(database_path: str | Path, *, status: str | None = None) -> l
         connection.close()
 
 
-def get_incident(database_path: str | Path, incident_id: str) -> Incident:
-    connection = _connect(database_path)
+def get_incident(
+    database_path: str | Path, incident_id: str, *, read_only: bool = False
+) -> Incident:
+    connection = _connect(database_path, read_only=read_only)
     try:
         row = connection.execute(
             "SELECT * FROM incidents WHERE incident_id=? OR reference=?", (incident_id, incident_id)
@@ -717,10 +728,12 @@ def add_note(
         connection.close()
 
 
-def incident_timeline(database_path: str | Path, incident_id: str) -> list[dict[str, Any]]:
-    connection = _connect(database_path)
+def incident_timeline(
+    database_path: str | Path, incident_id: str, *, read_only: bool = False
+) -> list[dict[str, Any]]:
+    connection = _connect(database_path, read_only=read_only)
     try:
-        incident = get_incident(database_path, incident_id)
+        incident = get_incident(database_path, incident_id, read_only=read_only)
         items: list[dict[str, Any]] = [
             {
                 "timestamp": _stamp(incident.first_observed),
@@ -832,10 +845,12 @@ def incident_timeline(database_path: str | Path, incident_id: str) -> list[dict[
         connection.close()
 
 
-def incident_audit_history(database_path: str | Path, incident_id: str) -> list[dict[str, Any]]:
-    connection = _connect(database_path)
+def incident_audit_history(
+    database_path: str | Path, incident_id: str, *, read_only: bool = False
+) -> list[dict[str, Any]]:
+    connection = _connect(database_path, read_only=read_only)
     try:
-        incident = get_incident(database_path, incident_id)
+        incident = get_incident(database_path, incident_id, read_only=read_only)
         rows = connection.execute(
             "SELECT * FROM incident_audit WHERE incident_id=? ORDER BY occurred_at, audit_id",
             (incident.incident_id,),
@@ -854,9 +869,11 @@ def incident_audit_history(database_path: str | Path, incident_id: str) -> list[
         connection.close()
 
 
-def show_incident(database_path: str | Path, incident_id: str) -> dict[str, Any]:
-    incident = get_incident(database_path, incident_id)
-    connection = _connect(database_path)
+def show_incident(
+    database_path: str | Path, incident_id: str, *, read_only: bool = False
+) -> dict[str, Any]:
+    incident = get_incident(database_path, incident_id, read_only=read_only)
+    connection = _connect(database_path, read_only=read_only)
     try:
         alerts = connection.execute(
             """SELECT a.payload_json FROM incident_alerts ia JOIN alerts a USING(alert_id)
@@ -889,7 +906,7 @@ def show_incident(database_path: str | Path, incident_id: str) -> dict[str, Any]
                 {"actor": row["actor"], "note": row["note"], "created_at": row["created_at"]}
                 for row in notes
             ],
-            "timeline": incident_timeline(database_path, incident.incident_id),
+            "timeline": incident_timeline(database_path, incident.incident_id, read_only=read_only),
         }
     finally:
         connection.close()

@@ -1,0 +1,213 @@
+"""Dashboard service tests use only temporary SQLite databases and synthetic fixtures."""
+
+from __future__ import annotations
+
+import importlib
+import json
+import sqlite3
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from soc_sentinel.dashboard_services import (
+    DashboardServiceError,
+    add_investigation_note,
+    assign_incident_to_analyst,
+    change_incident_status,
+    get_dashboard_summary,
+    get_incident_details,
+    list_dashboard_alerts,
+    list_dashboard_incidents,
+    reopen_incident,
+    resolve_incident,
+    run_synthetic_investigation,
+)
+from soc_sentinel.db import initialize_database
+from soc_sentinel.demo import seed_demo_database
+from soc_sentinel.incidents import IncidentError
+
+
+def seeded(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
+    path = tmp_path / "soc-sentinel-demo.sqlite3"
+    result = run_synthetic_investigation(path)
+    return path, result
+
+
+def test_empty_database_summary_is_real_and_empty(tmp_path: Path) -> None:
+    path = initialize_database(tmp_path / "empty.sqlite3")
+    summary = get_dashboard_summary(path)
+    assert summary["total_incidents"] == 0
+    assert summary["total_alerts"] == 0
+    assert summary["activity"] == []
+    assert all(row["count"] == 0 for row in summary["alerts_by_severity"])
+
+
+def test_missing_database_is_not_created_by_read_services(tmp_path: Path) -> None:
+    path = tmp_path / "missing.sqlite3"
+    with pytest.raises(DashboardServiceError, match="database not found"):
+        get_dashboard_summary(path)
+    assert not path.exists()
+
+
+def test_demo_pipeline_is_reproducible_and_idempotent(tmp_path: Path) -> None:
+    path, first = seeded(tmp_path)
+    second = run_synthetic_investigation(path)
+    assert first["records_read"] == 8
+    assert first["events_inserted"] == 8
+    assert first["records_rejected"] == 0
+    assert first["alerts_generated"] == 3
+    assert second["events_inserted"] == 0
+    assert second["event_duplicates"] == 8
+    assert [item["alert_id"] for item in first["alerts"]] == [
+        item["alert_id"] for item in second["alerts"]
+    ]
+    assert len(first["incidents"]) == 2
+    assert [item["incident_id"] for item in first["incidents"]] == [
+        item["incident_id"] for item in second["incidents"]
+    ]
+    with sqlite3.connect(path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 3
+        assert connection.execute("SELECT COUNT(*) FROM incident_alerts").fetchone()[0] == 3
+
+
+def test_summary_and_incident_filters_use_persisted_data(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    summary = get_dashboard_summary(path)
+    assert summary["total_incidents"] == 2
+    assert summary["open_incidents"] == 2
+    assert summary["total_alerts"] == 3
+    assert sum(row["count"] for row in summary["alerts_by_severity"]) == 3
+    auth = list_dashboard_incidents(path, host="ws-fin-07")
+    assert auth["total"] == 1
+    assert auth["items"][0]["entities"]["username"] == ["jordan.chen"]
+    user = list_dashboard_incidents(path, username="jordan")
+    assert user["total"] == 1
+    searched = list_dashboard_incidents(path, query="INC-", page_size=1)
+    assert searched["total"] == 2
+    assert searched["pages"] == 2
+    assert len(searched["items"]) == 1
+    page_two = list_dashboard_incidents(path, query="INC-", page_size=1, page=2)
+    assert page_two["items"][0]["incident_id"] != searched["items"][0]["incident_id"]
+    high = list_dashboard_incidents(path, severities={"high"})
+    assert high["total"] == 1
+    with pytest.raises(DashboardServiceError, match="Unsupported incident sort"):
+        list_dashboard_incidents(path, sort_by="raw_sql")
+
+
+def test_alert_and_evidence_detail_includes_correlation_provenance(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    alerts = list_dashboard_alerts(path)
+    assert len(alerts) == 3
+    auth_incident = list_dashboard_incidents(path, host="ws-fin-07")["items"][0]
+    detail = get_incident_details(path, auth_incident["incident_id"])
+    assert len(detail["alerts"]) == 2
+    assert detail["correlation_explanations"]
+    assert all(item["explanation"] for item in detail["correlation_explanations"])
+    assert detail["evidence_events"]
+    assert all(item["provenance"] == "source_telemetry" for item in detail["evidence_events"].values())
+    timeline = detail["timeline"]
+    assert timeline == sorted(
+        timeline,
+        key=lambda item: (
+            item["timestamp"], item["kind"],
+            str(item.get("event_id", item.get("audit_id", item.get("alert_id", "")))),
+        ),
+    )
+    assert {item["timestamp_type"] for item in timeline} >= {"security_event", "application_audit"}
+
+
+def test_missing_source_event_is_reported_not_fabricated(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    incident = list_dashboard_incidents(path, host="ws-fin-07")["items"][0]
+    details = get_incident_details(path, incident["incident_id"])
+    event_id = details["alerts"][0]["evidence_event_ids"][0]
+    with sqlite3.connect(path) as connection:
+        connection.execute("DELETE FROM events WHERE event_id=?", (event_id,))
+    refreshed = get_incident_details(path, incident["incident_id"])
+    assert event_id in refreshed["missing_event_ids"]
+    timeline_item = next(item for item in refreshed["timeline"] if item.get("event_id") == event_id)
+    assert timeline_item["source_available"] is False
+
+
+def test_lifecycle_assignment_notes_resolution_reopen_and_stale_conflict(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    incident = list_dashboard_incidents(path, host="ws-fin-07")["items"][0]
+    incident_id, version = incident["incident_id"], incident["version"]
+    assigned = assign_incident_to_analyst(path, incident_id, "analyst-demo", version)
+    assert assigned.assigned_analyst == "analyst-demo"
+    with pytest.raises(IncidentError, match="stale incident version"):
+        assign_incident_to_analyst(path, incident_id, "stale-writer", version)
+    note = add_investigation_note(
+        path, incident_id, "Reviewed synthetic authentication evidence.",
+        expected_version=assigned.version,
+    )
+    assert note["note"].startswith("Reviewed")
+    current = list_dashboard_incidents(path, host="ws-fin-07")["items"][0]
+    resolved = resolve_incident(
+        path, incident_id, "inconclusive", "Need more telemetry.", current["version"]
+    )
+    assert resolved.status.value == "resolved"
+    reopened = reopen_incident(path, incident_id, resolved.version)
+    assert reopened.status.value == "open"
+    assert reopened.resolution_classification is None
+    with pytest.raises(IncidentError, match="resolution requires"):
+        resolve_incident(path, incident_id, "inconclusive", "  ", reopened.version)
+    audit = get_incident_details(path, incident_id)["timeline"]
+    assert any(item["kind"] == "assignment_changed" for item in audit)
+    assert any(item["kind"] == "note" and item.get("note") for item in audit)
+    assert any(item["kind"] == "status_changed" for item in audit)
+
+
+def test_invalid_lifecycle_transition_is_visible(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    incident = list_dashboard_incidents(path, host="ws-fin-07")["items"][0]
+    with pytest.raises(IncidentError, match="invalid status transition"):
+        change_incident_status(path, incident["incident_id"], "closed", incident["version"])
+
+
+def test_demo_reset_requires_demo_named_target_and_preserves_other_db(tmp_path: Path) -> None:
+    protected_like = tmp_path / "working.sqlite3"
+    protected_like.write_text("keep me", encoding="utf-8")
+    with pytest.raises(ValueError, match="filename must contain 'demo'"):
+        seed_demo_database(protected_like, reset=True)
+    assert protected_like.read_text(encoding="utf-8") == "keep me"
+    demo_path = tmp_path / "soc-sentinel-demo.sqlite3"
+    first = seed_demo_database(demo_path)
+    assert first["reset_performed"] is False
+    reset = seed_demo_database(demo_path, reset=True)
+    assert reset["reset_performed"] is True
+    assert reset["alerts_generated"] == 3
+    with sqlite3.connect(demo_path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 3
+
+
+def test_demo_seed_cli_json_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from soc_sentinel.cli import main
+
+    path = tmp_path / "cli-demo.sqlite3"
+    assert main(["demo-seed", "--db", str(path), "--json"]) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["events_inserted"] == 8
+    assert output["alerts_generated"] == 3
+    assert path.is_file()
+
+
+def test_cli_import_does_not_import_streamlit() -> None:
+    subprocess.run(
+        [
+            sys.executable, "-c",
+            "import sys; import soc_sentinel.cli; assert 'streamlit' not in sys.modules",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_dashboard_module_imports_without_starting_ui() -> None:
+    pytest.importorskip("streamlit")
+    module = importlib.import_module("soc_sentinel.dashboard")
+    assert callable(module.main)

@@ -55,6 +55,12 @@ def _build_parser() -> argparse.ArgumentParser:
     detect.add_argument(
         "--json", action="store_true", dest="json_output", help="Emit machine-readable JSON."
     )
+    demo = subparsers.add_parser(
+        "demo-seed", help="Run the bundled synthetic scenario in a separate demo database."
+    )
+    demo.add_argument("--db", default="data/soc-sentinel-demo.sqlite3")
+    demo.add_argument("--reset", action="store_true", help="Explicitly recreate a demo-named database.")
+    demo.add_argument("--json", action="store_true", dest="json_output")
     add_incident_parsers(subparsers)
     return parser
 
@@ -67,6 +73,34 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = _build_parser()
     args = parser.parse_args(argv)
+    if args.command == "demo-seed":
+        from soc_sentinel.demo import seed_demo_database
+
+        try:
+            result = seed_demo_database(args.db, reset=args.reset)
+        except (OSError, sqlite3.Error, RuntimeError) as exc:
+            print(f"soc-sentinel: demo seeding failed: {exc}", file=sys.stderr)
+            return 1
+        except ValueError as exc:
+            print(f"soc-sentinel: unsafe demo operation rejected: {exc}", file=sys.stderr)
+            return 2
+        if args.json_output:
+            print(json.dumps(result, indent=2, sort_keys=True, default=str))
+        else:
+            print(f"Demo database: {result['database']}")
+            print(f"Reset performed: {result['reset_performed']}")
+            print(
+                f"Fixture records: {result['records_read']}; inserted: {result['events_inserted']}; "
+                f"duplicates: {result['event_duplicates']}; rejected: {result['records_rejected']}"
+            )
+            print(f"Alerts generated: {result['alerts_generated']}")
+            print(f"Incidents available: {len(result['incidents'])}")
+            for incident in result["incidents"]:
+                print(
+                    f"- {incident['reference']} [{incident['status']}] "
+                    f"{incident['title']} ({incident['alert_count']} alert(s))"
+                )
+        return 0
     if args.command in {
         "correlate",
         "list-incidents",

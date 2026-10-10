@@ -1,119 +1,141 @@
 # SOC Sentinel
 
-**A local-first detection engineering and incident investigation lab.**
+**A local-first SOC investigation workstation and deterministic detection-engineering lab.**
 
-SOC Sentinel is a defensive security project for validating security-event records and eventually applying deterministic detections, investigating evidence-backed alerts, and evaluating detection quality using reproducible synthetic scenarios.
+SOC Sentinel turns normalized synthetic security events into evidence-linked alerts, explainable correlated incidents, and auditable analyst investigations. The dashboard is built with Streamlit and uses the existing Python application services and local SQLite database.
 
 ## Principles
 
-- **₹0 by design:** local core, no cloud account, paid service, remote database, AI API, or API key.
-- **Defensive-only:** start with synthetic fixtures; use only data from systems you own or are authorized to investigate.
-- **Evidence first:** preserve event source provenance; detection labels are metadata, not evidence.
-- **Reproducible:** behavior is testable and future detection quality is measured against labeled scenarios.
-- **Small milestones:** each phase has explicit acceptance criteria and a project status record.
+- **₹0 by design:** local Python + SQLite; no cloud database, paid API, account, or key.
+- **Evidence first:** source event references, detection rationale, correlation explanations, and analyst conclusions remain distinct.
+- **Reproducible:** shipped fictional fixtures and declarative rules; stable event and alert IDs make reruns idempotent.
+- **Safe by default:** local-only bind, allow-listed synthetic workflows, read-only dashboard queries, version-checked lifecycle updates.
+- **Defensive use only:** use synthetic fixtures or logs from systems you own or are authorized to investigate.
 
-## Current status
+## Features
 
-Phase 4 — Alert Correlation and Incident Investigation (implemented; CI verified). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+- Dark SOC operations overview with database-backed incident/alert metrics and activity charts.
+- Searchable incident explorer with status, severity, time, analyst, host, and username filters.
+- Investigation workspace with linked alerts, event evidence, correlation explanations, timeline provenance, notes, and audit history.
+- Lifecycle controls for assignment, status, resolution, reopening, and confirmed terminal closure.
+- Synthetic lab to run bundled JSONL fixtures through the real detection and correlation services.
+- CLI and dashboard share the same application layer; Streamlit is an optional extra and is not imported by normal CLI startup.
+
+## Architecture
+
+```mermaid
+flowchart TD
+  A[Bundled synthetic JSONL] --> B[Validated SecurityEvent]
+  B --> C[Deterministic detection engine]
+  C --> D[Evidence-linked alerts]
+  D --> E[Explainable correlation service]
+  E --> F[(SQLite schema v3)]
+  F --> G[Framework-independent dashboard services]
+  G --> H[Streamlit SOC dashboard]
+  G --> I[Existing CLI]
+  H --> J[Incident timeline, notes, lifecycle and audit]
+```
+
+The dashboard does not reimplement detection, correlation, persistence, or lifecycle transitions. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DASHBOARD.md](docs/DASHBOARD.md).
 
 ## Requirements
 
 - Python 3.11–3.13
-- SQLite (included in Python)
-- Pydantic 2 for runtime schema validation
-- Development tools: pytest, Ruff, mypy
+- SQLite (included with Python)
+- Base runtime: Pydantic 2 and PyYAML
+- Optional dashboard: Streamlit
+- Development: pytest, Ruff, mypy
 
-## Quick start
+## Install and verify
 
 ```bash
 python -m venv .venv
 # Linux/macOS
 source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,dashboard]"
 pytest
 ruff check .
 ruff format --check .
 mypy src tests
 ```
 
-## CLI
+To install only the CLI runtime, use `python -m pip install -e .`; Streamlit is not required for ingestion, detection, correlation, or incident CLI commands.
 
-Show the version and initialize or migrate a local database:
+## Start the dashboard locally
 
-```bash
-soc-sentinel --version
-soc-sentinel check-db data/soc-sentinel.sqlite3
-```
-
-Ingest the bundled synthetic fixture:
+Create a separate synthetic demo database:
 
 ```bash
-soc-sentinel ingest --input data/samples/authentication.jsonl --db data/soc-sentinel.sqlite3
+soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3
 ```
 
-Non-strict mode (default) continues after invalid JSON/schema records and duplicate IDs within the input. It prints counts and each rejected line number, then persists all valid input records. Event IDs already stored in SQLite are skipped and counted as database duplicates. A database insert error rolls back the whole insert transaction.
-
-Strict mode aborts at the first malformed or schema-invalid record before touching the database:
+Then launch the dashboard bound to loopback:
 
 ```bash
-soc-sentinel ingest --input data/samples/authentication.jsonl --db data/soc-sentinel.sqlite3 --strict
+# Linux/macOS
+SOC_SENTINEL_DB=data/soc-sentinel-demo.sqlite3 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 ```
 
-Exit codes: `0` ingestion completed (non-strict mode may report rejected lines); `1` input I/O or database failure; `2` strict validation failure.
+Windows PowerShell:
 
-See [docs/EVENT_SCHEMA.md](docs/EVENT_SCHEMA.md) for the normalized record contract and [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) for SQLite migrations and storage.
+```powershell
+$env:SOC_SENTINEL_DB = "data/soc-sentinel-demo.sqlite3"
+streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
+```
 
-## Detection engineering CLI
+Open the local URL printed by Streamlit. The repository config also binds the server to `127.0.0.1`. If no database exists, the dashboard shows the exact seed command instead of creating a database silently.
 
-Validate the shipped declarative YAML rules:
+## Synthetic walkthrough and reset safety
+
+The committed fixture `data/samples/soc-demo.jsonl` contains eight fictional events: a five-failure authentication burst followed by a successful login, a suspicious encoded-command indicator, and a benign `-Encoding` lookalike. The example uses documentation-only IP ranges. The simulated command is never executed.
+
+The pipeline should produce three alerts: two related authentication alerts and one separate process alert, grouped into two incidents. These are expected scenario outcomes; the app still calculates all displayed metrics from the persisted database.
+
+Reruns are idempotent:
+
+```bash
+soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3
+```
+
+To explicitly recreate only a demo-named database:
+
+```bash
+soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3 --reset
+```
+
+`--reset` refuses target filenames without `demo` and protects `data/soc-sentinel.sqlite3`. Keep real or important local databases out of the demo reset workflow.
+
+For rule validation and the original CLI:
 
 ```bash
 soc-sentinel validate-rules --rules rules/
+soc-sentinel detect --input data/samples/soc-demo.jsonl --rules rules/
+soc-sentinel correlate --input data/samples/soc-demo.jsonl --rules rules/ --db data/soc-sentinel-demo.sqlite3
+soc-sentinel list-incidents --db data/soc-sentinel-demo.sqlite3
 ```
 
-Run the deterministic detection engine against synthetic or authorized JSONL telemetry:
+## Screenshots
 
-```bash
-soc-sentinel detect --input data/samples/authentication.jsonl --rules rules/
-```
+No screenshots have been captured and verified yet. Capture real screenshots locally after running the dashboard; do not treat this heading as evidence of a live hosted instance.
 
-Emit machine-readable alert output:
+Suggested portfolio captures:
 
-```bash
-soc-sentinel detect --input data/samples/authentication.jsonl --rules rules/ --json
-```
+1. Operations overview with real seeded metrics.
+2. Incident explorer with filters and the persisted case queue.
+3. Investigation workspace showing evidence IDs and detection rationale.
+4. Timeline with security-event and application-audit provenance.
+5. Correlation explanation and analyst lifecycle controls.
+6. Synthetic lab showing pipeline counts and the benign lookalike.
 
-Use `--strict` to abort if any nonblank input record fails JSON/schema validation. Default non-strict mode evaluates valid records and reports rejected rows. Exit codes for these commands: `0` operation completed; `1` input I/O failure; `2` rule validation failure; `3` strict detection input validation failure.
+## Security and deployment posture
 
-The rule format is documented in [docs/RULE_FORMAT.md](docs/RULE_FORMAT.md), and the shipped rules, evidence, false positives, and limitations are described in [docs/DETECTION_CATALOG.md](docs/DETECTION_CATALOG.md). A detection is an investigative lead, not proof of malicious activity. The engine never uses scenario labels as evidence.
+The dashboard reads SQLite in read-only mode for queries and routes mutations through the existing transactional services. The synthetic lab accepts only known fixture names, shipped rule profiles, and the checked-in correlation policy. No arbitrary shell commands, YAML paths, or HTML supplied by telemetry are executed or rendered.
 
-## Incident investigation CLI
+Do not bind the service to a public interface. An unauthenticated dashboard with incident details and write controls is unsafe to expose publicly. A future ₹0 deployment would still need authentication, authorization, secret/session handling, TLS, and an explicit persistence strategy; free-host filesystems may be ephemeral. No deployment is configured or performed in this phase.
 
-Run the end-to-end detection and correlation pipeline against normalized JSONL. The default policy is `correlation.yaml`; all state is local SQLite:
+## Quality and project status
 
-```bash
-soc-sentinel correlate --input data/samples/authentication.jsonl --rules rules/ --db data/soc-sentinel.sqlite3
-soc-sentinel list-incidents --db data/soc-sentinel.sqlite3
-soc-sentinel show-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX
-soc-sentinel incident-timeline --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX
-soc-sentinel incident-audit --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX
-```
+CI runs pytest, Ruff lint, Ruff formatting, and mypy on Python 3.11, 3.12, and 3.13. See [GitHub Actions](https://github.com/vansh-kumar-007/soc-sentinel/actions) and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
-Use the current version printed by `show-incident` for concurrency-safe updates:
-
-```bash
-soc-sentinel update-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --status in_progress --version 2
-soc-sentinel assign-analyst --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --analyst "Analyst 1" --version 3
-soc-sentinel add-note --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --note "Reviewed authentication evidence." --version 4
-soc-sentinel resolve-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --classification inconclusive --summary "More telemetry required." --version 5
-soc-sentinel reopen-incident --db data/soc-sentinel.sqlite3 --incident-id INC-XXXXXXXX --version 6
-```
-
-Use `--json` on listing, inspection, timeline, audit, and correlation commands for machine-readable output. Incident IDs are deterministic from their initial alert set; human-readable references use the `INC-` prefix. Correlation rules and lifecycle semantics are documented in [docs/CORRELATION_POLICY.md](docs/CORRELATION_POLICY.md) and [docs/INCIDENT_WORKFLOW.md](docs/INCIDENT_WORKFLOW.md).
-
-Phase 5, the local investigation dashboard, has not started. Do not treat scenario metadata in input files as detection evidence.
-
-## Security and privacy
-
-Do not commit credentials, private logs, personal data, or local database files. Use synthetic or authorized logs only. Review [SECURITY.md](SECURITY.md).
+Known limitations include a local single-user workflow, exact-identifier correlation, in-memory event evaluation, and no live telemetry ingestion. Phase 6 detection evaluation is not part of this milestone.

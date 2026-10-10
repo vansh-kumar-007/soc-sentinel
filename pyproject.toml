@@ -19,6 +19,7 @@ dev = [
   "ruff>=0.5,<1",
   "types-PyYAML>=6.0,<7",
 ]
+dashboard = ["streamlit>=1.40,<2"]
 
 [project.scripts]
 soc-sentinel = "soc_sentinel.cli:main"
@@ -42,6 +43,9 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.ruff.lint.per-file-ignores]
 "src/soc_sentinel/db.py" = ["E501"]
 "src/soc_sentinel/incidents.py" = ["E501"]
+"src/soc_sentinel/dashboard.py" = ["E501"]
+"src/soc_sentinel/dashboard_services.py" = ["E501"]
+"tests/test_dashboard_services.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

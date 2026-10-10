@@ -1,25 +1,25 @@
-# Incident investigation workflow
+# SOC dashboard and synthetic investigation workflow
 
-## Local-first end-to-end flow
+## Local dashboard
 
-1. Parse normalized JSONL and validate each event.
-2. Run the unchanged Phase 3 detection rules to produce deterministic, evidence-linked alerts.
-3. Persist accepted events, alert payloads, incident links, explanations, and audit records in local SQLite.
-4. Use incident commands to investigate evidence, assign an analyst, add notes, change status, resolve, reopen, and inspect the timeline.
+The optional Streamlit dashboard consumes `dashboard_services.py`, which wraps Phase 4 incident interfaces and exposes read-only SQLite queries for metrics, filters, alerts, and source-event details. Status, assignment, notes, resolution, and reopening use the Phase 4 application methods and retain optimistic version checks and audit entries.
 
-Alert generation remains stateless. Correlation and incident lifecycle are stateful. Re-running the same complete input is idempotent for event IDs, alert IDs, and incident-alert links; newly available alerts can extend existing investigations.
+The dashboard's `SOC_SENTINEL_DB` environment variable selects the database. It does not create a database silently. Read views require an existing schema-v3 database and open it in SQLite read-only/query-only mode. The synthetic workflow writes only when the analyst submits the form.
 
-## Status and conclusions
+## Synthetic workflow
 
-- `open` → `in_progress` or `resolved`.
-- `in_progress` → `open` or `resolved`.
-- `resolved` → `open` (reopen) or `closed`.
-- `closed` is terminal in the current CLI.
+The lab only accepts fixture keys mapped in code to `data/samples/soc-demo.jsonl` or `data/samples/authentication.jsonl`, three shipped detection profiles, and the repository's `correlation.yaml`. It does not accept arbitrary paths or execute process command lines.
 
-Resolving requires a classification (`true_positive`, `benign_positive`, `false_positive`, or `inconclusive`) and a non-empty analyst summary. A detection or correlation never sets a true-positive conclusion. Reopening clears current resolution fields but keeps the earlier classification and summary in the audit record.
+The walkthrough has eight fictional events. It is designed to produce three alerts: DET-001 and DET-002 from related authentication telemetry, plus DET-003 for an encoded PowerShell command-line indicator. The benign `-Encoding` lookalike must not trigger DET-003. The two authentication alerts should correlate; the process alert remains a separate incident. These expected outputs are covered by tests.
 
-Every status/assignment/note operation appends audit history transactionally. Status and assignment updates require the version shown by `show-incident`; stale versions fail with a reload-and-retry error. Notes optionally accept `--version` for the same concurrency guard. This is a local single-user tool, not an authenticated multi-user service.
+## Demo database reset
 
-## Timeline provenance
+`soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3` is repeatable and skips existing event IDs. To reset, `--reset` is required and the destination filename must contain `demo`. The exact `data/soc-sentinel.sqlite3` working database is protected. Do not use a real investigation database as a demo target.
 
-Timeline entries label timestamps as `security_event` (source telemetry event time or alert observed time) or `application_audit` (correlation, analyst notes, assignments, and lifecycle actions). Each entry identifies provenance such as `source_telemetry`, `detection_rule`, `correlation_engine`, or `analyst_input`. If an underlying event is no longer available in the local event table, the timeline shows only its event ID and marks the source unavailable; it does not invent event details.
+## Provenance and interpretation
+
+Source event fields are read from the event table; alert rationale and ATT&CK references come from persisted detection output; correlation explanation is persisted by the correlation engine; notes and lifecycle decisions are analyst/application records. Missing event rows are shown as missing while their alert evidence IDs remain visible. A rule match or correlation is not proof of compromise.
+
+## Local security
+
+Bind Streamlit to `127.0.0.1`. Do not expose the unauthenticated write-capable dashboard on a public interface. No external calls or telemetry export occur during normal local use.
