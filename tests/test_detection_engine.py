@@ -103,23 +103,19 @@ def test_failure_burst_outside_window_does_not_alert() -> None:
 
 
 def test_failure_burst_separates_users_and_source_ips() -> None:
-    events = [
-        auth_event(f"alice-{i}", i, username="alice", source_ip="192.0.2.10")
-        for i in range(3)
-    ] + [
-        auth_event(f"bob-{i}", i, username="bob", source_ip="192.0.2.10")
-        for i in range(2)
-    ] + [
-        auth_event(f"other-ip-{i}", i, username="alice", source_ip="198.51.100.20")
-        for i in range(2)
-    ]
+    events = (
+        [auth_event(f"alice-{i}", i, username="alice", source_ip="192.0.2.10") for i in range(3)]
+        + [auth_event(f"bob-{i}", i, username="bob", source_ip="192.0.2.10") for i in range(2)]
+        + [
+            auth_event(f"other-ip-{i}", i, username="alice", source_ip="198.51.100.20")
+            for i in range(2)
+        ]
+    )
     assert alerts_for("DET-001", events) == []
 
 
 def test_failure_burst_skips_events_without_required_group_fields() -> None:
-    events = [
-        auth_event(f"no-ip-{i}", i, source_ip=None) for i in range(6)
-    ]
+    events = [auth_event(f"no-ip-{i}", i, source_ip=None) for i in range(6)]
     assert alerts_for("DET-001", events) == []
 
 
@@ -217,7 +213,6 @@ def test_scenario_labels_never_change_detection_result() -> None:
 
 def test_empty_batches_return_no_alerts() -> None:
     assert evaluate_events([], RULES) == []
-
 
 
 def test_failure_then_success_outside_window_does_not_alert() -> None:
