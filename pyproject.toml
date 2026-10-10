@@ -19,7 +19,7 @@ dev = [
   "ruff>=0.5,<1",
   "types-PyYAML>=6.0,<7",
 ]
-dashboard = ["streamlit>=1.40,<2"]
+dashboard = ["streamlit>=1.40,<2", "numpy<2.4"]
 
 [project.scripts]
 soc-sentinel = "soc_sentinel.cli:main"
@@ -57,7 +57,3 @@ strict = true
 mypy_path = "src"
 files = ["src", "tests"]
 
-[[tool.mypy.overrides]]
-module = ["streamlit", "streamlit.*", "pandas", "pandas.*", "numpy", "numpy.*"]
-follow_imports = "skip"
-ignore_missing_imports = true
