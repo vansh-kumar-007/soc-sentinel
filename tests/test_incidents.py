@@ -113,6 +113,10 @@ def test_policy_rejects_unknown_fields_duplicate_strategies_and_empty_strategies
         )
     with pytest.raises(ValueError):
         CorrelationPolicy.model_validate({"policy_id": "x", "strategies": []})
+    with pytest.raises(ValueError):
+        CorrelationPolicy.model_validate(
+            {"policy_id": "x", "strategies": ["same_host"], "minimum_shared_entities": 0}
+        )
     bad = tmp_path / "policy.yaml"
     bad.write_text(
         "policy_id: x\nstrategies: [same_host]\n"
@@ -276,6 +280,7 @@ def test_incident_lifecycle_notes_assignment_resolution_and_optimistic_version(
     )
     timeline = incident_timeline(db, reopened.incident_id)
     assert all("timestamp_type" in item and "provenance" in item for item in timeline)
+    assert {item["kind"] for item in timeline} >= {"first_observed", "last_observed"}
     assert show_incident(db, reopened.incident_id)["alerts"][0]["alert_id"] == "alert-1"
     resolved_again = update_status(
         db,
@@ -435,3 +440,31 @@ def test_failed_v3_migration_rolls_back_created_tables_and_version(tmp_path: Pat
             )
         }
         assert "alerts" not in tables
+
+
+
+def test_transitive_disabled_keeps_chain_components_separate(tmp_path: Path) -> None:
+    db = tmp_path / "non-transitive.sqlite3"
+    events = [
+        event("chain-a", 0, host_id="host-a"),
+        event("chain-b1", 10, host_id="host-a"),
+        event("chain-b2", 20, host_id="host-b"),
+        event("chain-c", 30, host_id="host-b"),
+    ]
+    first = alert("chain-alert-a", "chain-a", 0, host_id="host-a")
+    bridge = alert("chain-alert-b", "chain-b1", 10, host_id="host-a").model_copy(
+        update={
+            "evidence_event_ids": ["chain-b1", "chain-b2"],
+            "event_count": 2,
+            "last_observed": datetime(2026, 10, 10, tzinfo=UTC) + timedelta(seconds=20),
+        }
+    )
+    last = alert("chain-alert-c", "chain-c", 30, host_id="host-b")
+    seed_db(db, events)
+    incidents = correlate_and_persist(
+        db,
+        [first, bridge, last],
+        events,
+        policy(strategies=["same_host"], allow_transitive=False),
+    )
+    assert sorted(incident.alert_count for incident in incidents) == [1, 2]
