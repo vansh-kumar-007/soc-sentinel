@@ -29,6 +29,16 @@ streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 
 The application binds to loopback by default in the checked-in Streamlit config, and Streamlit usage statistics are disabled. The environment variable changes the local database file; it does not expose arbitrary fixture paths.
 
+## Detection evaluation
+
+The **Detection evaluation** navigation item runs the same framework-independent evaluator used by the CLI against `data/evaluation/benchmark.json` and the checked-in `rules/` directory. It displays aggregate precision, recall, F1, TP/FP/FN/TN counts, per-rule metrics, scenario outcomes, and false-positive/false-negative details. It is available even before a demo SQLite database has been created and does not read or mutate incident state.
+
+The dashboard does not calculate its own metrics. For the full matching definition, fingerprints, and deterministic JSON/Markdown report generation, see [docs/EVALUATION.md](EVALUATION.md). To write local report files, run:
+
+```bash
+soc-sentinel evaluate --dataset data/evaluation/benchmark.json --rules rules/ --output reports/evaluation/
+```
+
 ## Workflow
 
 - **Operations overview:** actual SQLite counts for incidents, statuses, alerts by severity, creation activity, and entities found in incident records.
