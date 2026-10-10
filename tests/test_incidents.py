@@ -277,6 +277,19 @@ def test_incident_lifecycle_notes_assignment_resolution_and_optimistic_version(
     timeline = incident_timeline(db, reopened.incident_id)
     assert all("timestamp_type" in item and "provenance" in item for item in timeline)
     assert show_incident(db, reopened.incident_id)["alerts"][0]["alert_id"] == "alert-1"
+    resolved_again = update_status(
+        db,
+        reopened.incident_id,
+        IncidentStatus.RESOLVED,
+        reopened.version,
+        classification=ResolutionClassification.INCONCLUSIVE,
+        summary="Awaiting more telemetry.",
+    )
+    closed = update_status(
+        db, resolved_again.incident_id, IncidentStatus.CLOSED, resolved_again.version
+    )
+    with pytest.raises(IncidentError, match="invalid status transition"):
+        update_status(db, closed.incident_id, IncidentStatus.OPEN, closed.version)
 
 
 def test_database_v2_migrates_without_losing_events_and_enables_foreign_keys(
@@ -305,3 +318,117 @@ def test_database_v2_migrates_without_losing_events_and_enables_foreign_keys(
                 "INSERT INTO incident_alerts "
                 "VALUES ('missing-incident', 'missing-alert', '2026-10-10T00:00:00Z')"
             )
+
+
+
+def test_new_related_evidence_reopens_resolved_incident(tmp_path: Path) -> None:
+    db = tmp_path / "reopen.sqlite3"
+    first_event = event("first-event")
+    seed_db(db, [first_event])
+    first_alert = alert("first-alert", "first-event")
+    incident = correlate_and_persist(db, [first_alert], [first_event], policy())[0]
+    resolved = update_status(
+        db,
+        incident.incident_id,
+        IncidentStatus.RESOLVED,
+        incident.version,
+        classification=ResolutionClassification.INCONCLUSIVE,
+        summary="Need additional evidence.",
+    )
+
+    later_event = event("later-event", 10)
+    seed_db(db, [later_event])
+    later_alert = alert("later-alert", "later-event", 10)
+    updated = correlate_and_persist(db, [later_alert], [later_event], policy())[0]
+
+    assert updated.incident_id == resolved.incident_id
+    assert updated.status == IncidentStatus.OPEN
+    assert updated.resolution_classification is None
+    assert updated.alert_count == 2
+    history = incident_audit_history(db, updated.incident_id)
+    assert any(item["action"] == "reopened_by_new_evidence" for item in history)
+    assert any(
+        item["details"].get("after", {}).get("resolution_classification") == "inconclusive"
+        for item in history
+    )
+
+
+def test_new_alert_matching_two_incidents_is_assigned_once(tmp_path: Path) -> None:
+    db = tmp_path / "single-assignment.sqlite3"
+    events = [
+        event("host-a-first", 0, host_id="host-a"),
+        event("host-b-first", 1000, host_id="host-b"),
+        event("host-a-later", 10, host_id="host-a"),
+        event("host-b-later", 1010, host_id="host-b"),
+    ]
+    seed_db(db, events[:2])
+    p = policy(strategies=["same_host"], window_seconds=60)
+    incident_a = correlate_and_persist(
+        db, [alert("alert-a", "host-a-first", 0, host_id="host-a")], events[:1], p
+    )[0]
+    incident_b = correlate_and_persist(
+        db, [alert("alert-b", "host-b-first", 1000, host_id="host-b")], events[1:2], p
+    )[0]
+    assert incident_a.incident_id != incident_b.incident_id
+    seed_db(db, events[2:])
+    spanning = alert("alert-spanning", "host-a-later", 10, host_id="host-a").model_copy(
+        update={
+            "evidence_event_ids": ["host-a-later", "host-b-later"],
+            "event_count": 2,
+            "last_observed": datetime(2026, 10, 10, tzinfo=UTC) + timedelta(seconds=1010),
+        }
+    )
+    correlate_and_persist(db, [spanning], events[2:], p)
+    with sqlite3.connect(db) as connection:
+        assignment_count = connection.execute(
+            "SELECT COUNT(*) FROM incident_alerts WHERE alert_id='alert-spanning'"
+        ).fetchone()[0]
+    assert assignment_count == 1
+
+
+def test_future_schema_is_rejected_without_modification(tmp_path: Path) -> None:
+    db = tmp_path / "future.sqlite3"
+    with sqlite3.connect(db) as connection:
+        connection.execute(
+            "CREATE TABLE schema_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+        )
+        connection.execute("INSERT INTO schema_metadata VALUES ('schema_version', '99')")
+    with pytest.raises(RuntimeError, match="newer than supported"):
+        initialize_database(db)
+    with sqlite3.connect(db) as connection:
+        assert connection.execute(
+            "SELECT value FROM schema_metadata WHERE key='schema_version'"
+        ).fetchone() == ("99",)
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        assert "alerts" not in tables
+
+
+def test_failed_v3_migration_rolls_back_created_tables_and_version(tmp_path: Path) -> None:
+    db = tmp_path / "migration-rollback.sqlite3"
+    with sqlite3.connect(db) as connection:
+        connection.execute(
+            "CREATE TABLE schema_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+        )
+        connection.execute("INSERT INTO schema_metadata VALUES ('schema_version', '2')")
+        connection.execute(
+            "CREATE TABLE events (event_id TEXT PRIMARY KEY, timestamp_utc TEXT NOT NULL)"
+        )
+        connection.execute("CREATE TABLE incidents (preexisting_marker TEXT)")
+    with pytest.raises(sqlite3.OperationalError, match="already exists"):
+        initialize_database(db)
+    with sqlite3.connect(db) as connection:
+        assert connection.execute(
+            "SELECT value FROM schema_metadata WHERE key='schema_version'"
+        ).fetchone() == ("2",)
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        assert "alerts" not in tables
