@@ -163,7 +163,6 @@ def test_different_entities_and_missing_values_do_not_correlate() -> None:
     )
 
 
-
 def test_minimum_shared_entity_requirement_filters_weak_links() -> None:
     left = alert("left", "e1")
     right = alert(
