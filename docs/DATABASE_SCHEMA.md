@@ -1,37 +1,43 @@
 # SQLite Database Schema
 
-Phase 1 created `schema_metadata` at schema version 1. Phase 2 upgrades it to version 2 and creates the local `events` table. Both migration DDL and version updates run in one explicit SQLite transaction. If a migration fails, the transaction rolls back. A newer version is rejected rather than downgraded.
+Schema migrations are transactional and idempotent. Version 1 creates schema metadata, version 2 adds normalized security events, and version 3 adds persistent alerts and incident investigation records. A database newer than the supported version is rejected rather than downgraded.
 
 ## Tables
 
-### `schema_metadata`
+### schema_metadata
+- key TEXT PRIMARY KEY
+- value TEXT NOT NULL
+- schema_version is maintained by initialization.
 
-- `key TEXT PRIMARY KEY`
-- `value TEXT NOT NULL`
-- `schema_version` is maintained by the initializer.
+### events (v2)
+Normalized telemetry with stable event ID primary key, UTC ISO-8601 timestamp, event type, host/user/IP context, action/outcome, optional process and scenario JSON, source provenance, and attributes JSON. Existing records are preserved during v3 migration. Duplicate event IDs are skipped rather than overwritten.
 
-### `events` (schema version 2)
+### alerts (v3)
+- alert_id TEXT PRIMARY KEY: deterministic Phase 3 alert ID.
+- rule_id, severity, first/last observed UTC timestamps.
+- payload_json: validated alert, rationale, grouping context, and evidence event IDs.
 
-| Column | Description |
-|---|---|
-| `event_id` | Primary key and deduplication boundary |
-| `timestamp_utc` | UTC ISO-8601 timestamp ending in `Z`, indexed |
-| `event_type` | `authentication`, `process`, or `network` |
-| `host_id`, `username` | Host and account context |
-| `source_ip`, `destination_ip` | Optional validated IP addresses |
-| `action`, `outcome` | Normalized action and result |
-| `process_json` | Optional process metadata as JSON |
-| `source_id` | Supplied source-provenance label |
-| `scenario_json` | Optional evaluation-only metadata |
-| `attributes_json` | Additional source-specific JSON object |
-| `ingested_at_utc` | Database insertion timestamp |
+### incidents (v3)
+- incident_id TEXT PRIMARY KEY: deterministic ID derived from the initial alert set.
+- reference TEXT UNIQUE: human-readable INC reference.
+- Title, summary, lifecycle status, severity, observed/created/updated timestamps.
+- Alert IDs and entity summary JSON; derived event/alert counts.
+- Optional analyst assignment and resolution classification/summary.
+- Monotonically increasing version for optimistic concurrency.
 
-Indexes support queries by timestamp, event type and timestamp, host, and username.
+### incident_alerts
+Foreign keys to incident and alert; alert_id UNIQUE enforces at most one incident assignment per alert. A composite primary key prevents duplicate links.
 
-## Transactions and duplicates
+### correlation_explanations
+Stores the linked alert pair, policy strategy, concrete shared values, time gap, explanation text, and application timestamp. A uniqueness constraint prevents repeated copies of the same explanation edge.
 
-Events use parameterized inserts inside one explicit transaction. `event_id` uniqueness is enforced by the primary key. IDs already in the database are skipped, counted, and never overwritten. An unexpected SQL failure rolls back all inserts from that ingestion batch.
+### incident_notes and incident_audit
+Append-only timestamped analyst notes and lifecycle/application audit events. Foreign keys use RESTRICT so investigation history cannot be silently orphaned by deletion.
 
-Schema migration and event insertion are independent transactions: migration may succeed even if a later event insertion fails, while no partial events from a failed insert batch are committed.
+## Transactions, migration, and timestamps
 
-SQLite is intended for local, single-user MVP storage, not a distributed multi-writer event store.
+The v3 DDL and schema version update run in one explicit transaction. Any exception rolls back the migration. Incident/alert relationship creation, correlation explanations, derived incident updates, and audit events are persisted in one transaction. Status and assignment updates use BEGIN IMMEDIATE, compare the expected version, and append audit history before commit. Foreign keys are enabled for all incident-store connections. Timestamps are stored in UTC ISO-8601 with a Z suffix where created by the application.
+
+The end-to-end command persists accepted events first using the established Phase 2 ingestion transaction, then persists alerts and incident state in a separate transaction. Therefore, if the incident transaction fails, event ingestion may remain committed; no partial alert/incident transaction is committed. This is deliberate and documented rather than claiming a cross-phase distributed transaction.
+
+SQLite is local single-user storage, not a distributed multi-writer database.
