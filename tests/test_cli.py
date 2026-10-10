@@ -18,9 +18,7 @@ def test_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
     assert captured.out.strip() == "soc-sentinel 0.1.0"
 
 
-def test_check_db_creates_database(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_check_db_creates_database(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     database_path = tmp_path / "nested" / "soc.sqlite3"
 
     assert main(["check-db", str(database_path)]) == 0
