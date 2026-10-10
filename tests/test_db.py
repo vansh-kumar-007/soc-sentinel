@@ -23,7 +23,15 @@ def test_database_has_current_schema_version_metadata(tmp_path: Path) -> None:
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
         }
     assert version == ("3",)
-    assert {"events", "alerts", "incidents", "incident_alerts", "correlation_explanations", "incident_audit", "incident_notes"}.issubset(tables)
+    assert {
+        "events",
+        "alerts",
+        "incidents",
+        "incident_alerts",
+        "correlation_explanations",
+        "incident_audit",
+        "incident_notes",
+    }.issubset(tables)
 
 
 def test_database_initialization_is_idempotent(tmp_path: Path) -> None:
