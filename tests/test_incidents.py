@@ -113,7 +113,8 @@ def test_policy_rejects_unknown_fields_duplicate_strategies_and_empty_strategies
         CorrelationPolicy.model_validate({"policy_id": "x", "strategies": []})
     bad = tmp_path / "policy.yaml"
     bad.write_text(
-        "policy_id: x\nstrategies: [same_host]\nrun: !!python/object/apply:os.system ['echo bad']\n",
+        "policy_id: x\nstrategies: [same_host]\n"
+        "run: !!python/object/apply:os.system ['echo bad']\n",
         encoding="utf-8",
     )
     with pytest.raises(CorrelationPolicyError):
@@ -264,5 +265,6 @@ def test_database_v2_migrates_without_losing_events_and_enables_foreign_keys(
         connection.execute("PRAGMA foreign_keys=ON")
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(
-                "INSERT INTO incident_alerts VALUES ('missing-incident','missing-alert','2026-10-10T00:00:00Z')"
+                "INSERT INTO incident_alerts "
+                "VALUES ('missing-incident', 'missing-alert', '2026-10-10T00:00:00Z')"
             )
