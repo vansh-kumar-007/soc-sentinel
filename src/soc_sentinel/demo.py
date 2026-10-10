@@ -46,7 +46,7 @@ def validate_demo_database(path: str | Path) -> bool:
             row = connection.execute(
                 "SELECT value FROM schema_metadata WHERE key='schema_version'"
             ).fetchone()
-            return row == ("3",)
+            return row is not None and row[0] == "3"
         finally:
             connection.close()
     except sqlite3.Error:
