@@ -71,9 +71,7 @@ def test_missing_input_file_returns_io_error(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     missing_path = tmp_path / "no-such-file.jsonl"
-    status = main(
-        ["ingest", "--input", str(missing_path), "--db", str(tmp_path / "db.sqlite3")]
-    )
+    status = main(["ingest", "--input", str(missing_path), "--db", str(tmp_path / "db.sqlite3")])
     assert status == 1
     assert "cannot read input" in capsys.readouterr().err
 
