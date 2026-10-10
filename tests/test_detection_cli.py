@@ -3,16 +3,34 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from soc_sentinel.cli import main
-from tests.test_detection_engine import auth_event
+from soc_sentinel.schemas import SecurityEvent
 
 
 ROOT = Path(__file__).parents[1]
 RULES = ROOT / "rules"
+
+
+def auth_event(event_id: str, second: int) -> SecurityEvent:
+    timestamp = datetime(2026, 10, 10, tzinfo=UTC) + timedelta(seconds=second)
+    return SecurityEvent.model_validate(
+        {
+            "event_id": event_id,
+            "timestamp": timestamp.isoformat(),
+            "event_type": "authentication",
+            "host_id": "cli-test-host",
+            "username": "alice",
+            "source_ip": "192.0.2.10",
+            "action": "login",
+            "outcome": "failure",
+            "source_id": "synthetic-cli-test",
+        }
+    )
 
 
 def test_validate_rules_cli_reports_shipped_rule_count(capsys: pytest.CaptureFixture[str]) -> None:
