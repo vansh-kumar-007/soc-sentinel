@@ -5,13 +5,14 @@ Run: streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 
 from __future__ import annotations
 
+import importlib
 import os
 import sqlite3
 from datetime import date
 from pathlib import Path
 from typing import Any
 
-import streamlit as st
+st: Any = importlib.import_module("streamlit")
 
 from soc_sentinel.correlation import CorrelationPolicyError
 from soc_sentinel.dashboard_services import (
