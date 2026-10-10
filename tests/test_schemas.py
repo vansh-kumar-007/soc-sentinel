@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -10,8 +11,8 @@ from pydantic import ValidationError
 from soc_sentinel.schemas import EventType, SecurityEvent
 
 
-def authentication_event(**overrides: object) -> dict[str, object]:
-    payload: dict[str, object] = {
+def authentication_event(**overrides: Any) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "event_id": "auth-001",
         "timestamp": "2026-10-10T12:00:00+05:30",
         "event_type": "authentication",
@@ -34,6 +35,7 @@ def test_valid_authentication_event_normalizes_timestamp_and_ip() -> None:
     assert event.timestamp == datetime(2026, 10, 10, 6, 30, tzinfo=UTC)
     assert event.source_ip == "192.0.2.10"
     assert event.scenario is not None and event.scenario.label == "benign"
+    assert event.model_dump(mode="json")["timestamp"] == "2026-10-10T06:30:00Z"
 
 
 def test_valid_process_event_requires_process_metadata() -> None:
@@ -78,7 +80,7 @@ def test_valid_network_event_requires_at_least_one_ip() -> None:
     ],
 )
 def test_invalid_event_records_are_rejected(
-    overrides: dict[str, object], message: str
+    overrides: dict[str, Any], message: str
 ) -> None:
     with pytest.raises(ValidationError, match=message):
         SecurityEvent.model_validate(authentication_event(**overrides))
