@@ -247,8 +247,15 @@ def calculate_metrics(counts: Counter[str]) -> dict[str, int | float | None]:
         f1 = None
     else:
         f1 = round(2 * precision * recall / (precision + recall), 6)
-    return {"tp": tp, "fp": fp, "fn": fn, "tn": tn,
-            "precision": precision, "recall": recall, "f1": f1}
+    return {
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "tn": tn,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
+    }
 
 
 def _alert_summary(alert: Alert) -> dict[str, Any]:
@@ -289,7 +296,6 @@ def evaluate_dataset(
     rule_counts: dict[str, Counter[str]] = {
         rule.rule_id: Counter() for rule in enabled_rules
     }
-    rule_titles = {rule.rule_id: rule.title for rule in enabled_rules}
     scenario_results: list[dict[str, Any]] = []
     all_false_positives: list[dict[str, Any]] = []
     all_false_negatives: list[dict[str, Any]] = []
@@ -328,7 +334,8 @@ def evaluate_dataset(
 
         for expectation in expected:
             candidates = [
-                alert for alert in unmatched_alerts
+                alert
+                for alert in unmatched_alerts
                 if alert.rule_id == expectation.rule_id
                 and set(expectation.evidence_event_ids).issubset(alert.evidence_event_ids)
             ]
@@ -341,13 +348,15 @@ def evaluate_dataset(
                 )
                 matched = candidates[0]
                 unmatched_alerts.remove(matched)
-                matched_expectations.append({
-                    "expectation_id": expectation.expectation_id,
-                    "rule_id": expectation.rule_id,
-                    "evidence_event_ids": list(expectation.evidence_event_ids),
-                    "alert_id": matched.alert_id,
-                    "actual_evidence_event_ids": list(matched.evidence_event_ids),
-                })
+                matched_expectations.append(
+                    {
+                        "expectation_id": expectation.expectation_id,
+                        "rule_id": expectation.rule_id,
+                        "evidence_event_ids": list(expectation.evidence_event_ids),
+                        "alert_id": matched.alert_id,
+                        "actual_evidence_event_ids": list(matched.evidence_event_ids),
+                    }
+                )
                 rule_counts[expectation.rule_id]["tp"] += 1
                 totals["tp"] += 1
             else:
@@ -396,42 +405,48 @@ def evaluate_dataset(
             outcome = "unexpected"
         else:
             outcome = "pass"
-        scenario_results.append({
-            "scenario_id": scenario.scenario_id,
-            "title": scenario.title,
-            "category": scenario.category,
-            "priority": scenario.priority,
-            "description": scenario.description,
-            "investigation_objective": scenario.investigation_objective,
-            "expected_detections": [
-                {
-                    "expectation_id": item.expectation_id,
-                    "rule_id": item.rule_id,
-                    "evidence_event_ids": list(item.evidence_event_ids),
-                }
-                for item in expected
-            ],
-            "matched_detections": matched_expectations,
-            "missed_detections": missed_expectations,
-            "actual_alerts": [_alert_summary(alert) for alert in alerts],
-            "unexpected_detections": scenario_false_positives,
-            "true_negative_rule_opportunities": sum(
-                1 for rule in enabled_rules
-                if rule.rule_id not in expected_rule_ids and rule.rule_id not in actual_rule_ids
-            ),
-            "outcome": outcome,
-            "rationale": scenario.rationale,
-            "limitations": list(scenario.limitations),
-        })
+        scenario_results.append(
+            {
+                "scenario_id": scenario.scenario_id,
+                "title": scenario.title,
+                "category": scenario.category,
+                "priority": scenario.priority,
+                "description": scenario.description,
+                "investigation_objective": scenario.investigation_objective,
+                "expected_detections": [
+                    {
+                        "expectation_id": item.expectation_id,
+                        "rule_id": item.rule_id,
+                        "evidence_event_ids": list(item.evidence_event_ids),
+                    }
+                    for item in expected
+                ],
+                "matched_detections": matched_expectations,
+                "missed_detections": missed_expectations,
+                "actual_alerts": [_alert_summary(alert) for alert in alerts],
+                "unexpected_detections": scenario_false_positives,
+                "true_negative_rule_opportunities": sum(
+                    1
+                    for rule in enabled_rules
+                    if rule.rule_id not in expected_rule_ids
+                    and rule.rule_id not in actual_rule_ids
+                ),
+                "outcome": outcome,
+                "rationale": scenario.rationale,
+                "limitations": list(scenario.limitations),
+            }
+        )
 
     per_rule = []
     for rule in enabled_rules:
         counts = rule_counts[rule.rule_id]
-        per_rule.append({
-            "rule_id": rule.rule_id,
-            "title": rule.title,
-            **calculate_metrics(counts),
-        })
+        per_rule.append(
+            {
+                "rule_id": rule.rule_id,
+                "title": rule.title,
+                **calculate_metrics(counts),
+            }
+        )
 
     return {
         "report_version": REPORT_VERSION,
@@ -520,7 +535,15 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"{item['fn']} | {item['tn']} | {_fmt(item['precision'])} | "
             f"{_fmt(item['recall'])} | {_fmt(item['f1'])} |"
         )
-    lines.extend(["", "## Scenario outcomes", "", "| Scenario | Category | Outcome | Expected | Matched | Missed | Unexpected |", "|---|---|---|---:|---:|---:|---:|"])
+    lines.extend(
+        [
+            "",
+            "## Scenario outcomes",
+            "",
+            "| Scenario | Category | Outcome | Expected | Matched | Missed | Unexpected |",
+            "|---|---|---|---:|---:|---:|---:|",
+        ]
+    )
     for item in report["scenario_results"]:
         lines.append(
             f"| {item['scenario_id']} — {_cell(item['title'])} | {_cell(item['category'])} | "
@@ -546,15 +569,17 @@ def render_markdown(report: dict[str, Any]) -> str:
             )
     else:
         lines.append("None.")
-    lines.extend([
-        "",
-        "## Interpretation and limitations",
-        "",
-        "Ground truth is independently authored benchmark metadata and is not passed to the detection engine. Each expectation is matched to at most one alert by stable rule ID and evidence references. Replayed input is modeled separately from the unique source-event records and follows the production engine's first-event-wins de-duplication behavior.",
-        "",
-        "A small synthetic dataset can reveal obvious boundary errors, lookalike false positives, and rule-specific gaps, but it cannot represent production telemetry diversity, identity ambiguity, logging loss, adversarial adaptation, or prevalence. Precision in this benchmark depends on its deliberately selected positive/negative mix and must not be generalized to a real SOC.",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Interpretation and limitations",
+            "",
+            "Ground truth is independently authored benchmark metadata and is not passed to the detection engine. Each expectation is matched to at most one alert by stable rule ID and evidence references. Replayed input is modeled separately from the unique source-event records and follows the production engine's first-event-wins de-duplication behavior.",
+            "",
+            "A small synthetic dataset can reveal obvious boundary errors, lookalike false positives, and rule-specific gaps, but it cannot represent production telemetry diversity, identity ambiguity, logging loss, adversarial adaptation, or prevalence. Precision in this benchmark depends on its deliberately selected positive/negative mix and must not be generalized to a real SOC.",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
