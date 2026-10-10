@@ -19,8 +19,9 @@ from soc_sentinel.schemas import EventType
 
 
 class Severity(StrEnum):
-    """Configured alert severity; not a confidence score or incident verdict."""
+    """Configured severity; not a confidence score or incident verdict."""
 
+    INFORMATIONAL = "informational"
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
