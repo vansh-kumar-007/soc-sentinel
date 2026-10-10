@@ -29,8 +29,14 @@ def test_phase_one_schema_migrates_to_v2_idempotently(tmp_path: Path) -> None:
         version = connection.execute(
             "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
         ).fetchone()
-        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
-        indexes = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'index'")}
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+        }
+        indexes = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'index'")
+        }
     assert version == ("2",)
     assert {"schema_metadata", "events"} <= tables
     assert {"idx_events_timestamp", "idx_events_type_timestamp", "idx_events_host"} <= indexes
