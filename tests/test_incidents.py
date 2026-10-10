@@ -325,7 +325,6 @@ def test_database_v2_migrates_without_losing_events_and_enables_foreign_keys(
             )
 
 
-
 def test_new_related_evidence_reopens_resolved_incident(tmp_path: Path) -> None:
     db = tmp_path / "reopen.sqlite3"
     first_event = event("first-event")
@@ -409,9 +408,7 @@ def test_future_schema_is_rejected_without_modification(tmp_path: Path) -> None:
         ).fetchone() == ("99",)
         tables = {
             row[0]
-            for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
         }
         assert "alerts" not in tables
 
@@ -435,12 +432,9 @@ def test_failed_v3_migration_rolls_back_created_tables_and_version(tmp_path: Pat
         ).fetchone() == ("2",)
         tables = {
             row[0]
-            for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
         }
         assert "alerts" not in tables
-
 
 
 def test_transitive_disabled_keeps_chain_components_separate(tmp_path: Path) -> None:
