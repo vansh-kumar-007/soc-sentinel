@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterable
 from datetime import UTC
 from pathlib import Path
-from collections.abc import Iterable
+from typing import Any
 
 from soc_sentinel.schemas import SecurityEvent
 
@@ -16,13 +17,12 @@ _SCHEMA_VERSION = 2
 def initialize_database(database_path: str | Path) -> Path:
     """Initialize or migrate a local database to the current schema.
 
-    Version 1 databases created by Phase 1 are migrated forward in-place.
-    Migrations run transactionally; a newer database version is rejected.
+    Phase 1 databases at schema version 1 are migrated forward in-place. The migration
+    to the current schema runs in one transaction. A newer database version is rejected.
     """
     path = Path(database_path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as connection:
-        connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS schema_metadata (
@@ -90,13 +90,12 @@ def insert_events(
     """Atomically insert events, skipping IDs already stored in SQLite.
 
     Returns (resolved database path, inserted count, duplicate count). Any unexpected
-    database error rolls back the full insert transaction.
+    database error rolls back the entire event insertion transaction.
     """
     path = initialize_database(database_path)
     inserted = 0
     duplicates = 0
     with sqlite3.connect(path) as connection:
-        connection.execute("PRAGMA foreign_keys = ON")
         for event in events:
             payload = event.model_dump(mode="python")
             cursor = connection.execute(
@@ -130,7 +129,7 @@ def insert_events(
     return path, inserted, duplicates
 
 
-def _json_or_none(value: object) -> str | None:
+def _json_or_none(value: Any) -> str | None:
     if value is None:
         return None
     if hasattr(value, "model_dump"):
