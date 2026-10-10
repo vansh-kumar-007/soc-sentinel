@@ -75,25 +75,29 @@ def test_shared_event_is_an_explicit_supported_relationship() -> None:
 
 def test_three_alert_transitive_chain_and_idempotent_repeat(tmp_path: Path) -> None:
     db = tmp_path / "soc.sqlite3"
-    events = [event("e1",0,username="alice",source_ip="192.0.2.1",host_id="host-a"),
-              event("e2",10,username="bob",source_ip="192.0.2.2",host_id="host-a"),
-              event("e3",20,username="carol",source_ip="192.0.2.3",host_id="host-b")]
-    alerts = [alert("a1","e1",0,username="alice",source_ip="192.0.2.1",host_id="host-a"),
-              alert("a2","e2",10,username="bob",source_ip="192.0.2.2",host_id="host-a"),
-              alert("a3","e3",20,username="carol",source_ip="192.0.2.3",host_id="host-b")]
-    seed_db(db,events)
-    p = policy(strategies=["same_host"])
-    first = correlate_and_persist(db,alerts,events,p)
-    assert len(first) == 1 and first[0].alert_count == 2
-    # Third alert has no relationship to the seed host; it remains separate.
-    assert len(list_incidents(db)) == 2
-    second = correlate_and_persist(db,alerts,events,p)
-    assert len(second) == 2
+    events = [
+        event("e1", 0, username="alice", source_ip="192.0.2.1", host_id="host-a"),
+        event("e2", 10, username="bob", source_ip="192.0.2.2", host_id="host-a"),
+        event("e3", 20, username="bob", source_ip="192.0.2.2", host_id="host-b"),
+        event("e4", 30, username="carol", source_ip="192.0.2.3", host_id="host-b"),
+    ]
+    a1 = alert("a1", "e1", 0, username="alice", source_ip="192.0.2.1", host_id="host-a")
+    a2 = alert("a2", "e2", 10, username="bob", source_ip="192.0.2.2", host_id="host-a")
+    a2 = a2.model_copy(update={"evidence_event_ids": ["e2", "e3"], "event_count": 2,
+        "last_observed": datetime(2026, 10, 10, tzinfo=UTC) + timedelta(seconds=20)})
+    a3 = alert("a3", "e4", 30, username="carol", source_ip="192.0.2.3", host_id="host-b")
+    alerts = [a1, a2, a3]
+    seed_db(db, events)
+    p = policy(strategies=["same_host"], allow_transitive=True)
+    first = correlate_and_persist(db, alerts, events, p)
+    assert len(first) == 1 and first[0].alert_count == 3
+    assert len(first[0].alert_ids) == 3
+    second = correlate_and_persist(db, alerts, events, p)
+    assert len(second) == 1 and second[0].incident_id == first[0].incident_id
     with sqlite3.connect(db) as connection:
         assert connection.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 3
         assert connection.execute("SELECT COUNT(*) FROM incident_alerts").fetchone()[0] == 3
-    # A true transitive chain A(host-a), B(host-a+host-b), C(host-b) can be built
-    # by multi-evidence alert context; no arbitrary timestamp-only chaining occurs.
+        assert connection.execute("SELECT COUNT(*) FROM correlation_explanations").fetchone()[0] >= 2
 
 def test_incident_lifecycle_notes_assignment_resolution_and_optimistic_version(tmp_path: Path) -> None:
     db = tmp_path / "lifecycle.sqlite3"; ev = event("event-1"); seed_db(db,[ev])
