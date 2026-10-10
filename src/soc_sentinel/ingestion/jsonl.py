@@ -77,11 +77,10 @@ def parse_jsonl_stream(stream: TextIO, *, strict: bool = False) -> ParsedBatch:
 
         if event.event_id in seen_ids:
             result.duplicate_records += 1
-            _record_issue(
-                result,
-                line_number,
-                f"duplicate event_id '{event.event_id}' within input",
-                strict=strict,
+            if strict:
+                raise ValueError(f"line {line_number}: duplicate event_id '{event.event_id}' within input")
+            result.issues.append(
+                IngestionIssue(line_number, f"duplicate event_id '{event.event_id}' within input")
             )
             continue
         seen_ids.add(event.event_id)
