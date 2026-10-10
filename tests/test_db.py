@@ -22,8 +22,8 @@ def test_database_has_current_schema_version_metadata(tmp_path: Path) -> None:
             row[0]
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
         }
-    assert version == ("2",)
-    assert "events" in tables
+    assert version == ("3",)
+    assert {"events", "alerts", "incidents", "incident_alerts", "correlation_explanations", "incident_audit", "incident_notes"}.issubset(tables)
 
 
 def test_database_initialization_is_idempotent(tmp_path: Path) -> None:
@@ -34,4 +34,4 @@ def test_database_initialization_is_idempotent(tmp_path: Path) -> None:
 
     with sqlite3.connect(database_path) as connection:
         rows = connection.execute("SELECT key, value FROM schema_metadata ORDER BY key").fetchall()
-    assert rows == [("schema_version", "2")]
+    assert rows == [("schema_version", "3")]
