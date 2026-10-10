@@ -11,7 +11,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import streamlit as st
 
 from soc_sentinel.correlation import CorrelationPolicyError
@@ -119,9 +118,16 @@ def overview(db: Path) -> None:
     left, right = st.columns([1, 1.5])
     with left:
         st.subheader("Alerts by severity")
-        frame = pd.DataFrame(summary["alerts_by_severity"])
         if summary["total_alerts"]:
-            st.bar_chart(frame.set_index("severity"), y="count", horizontal=True)
+            st.bar_chart(
+                {
+                    "severity": [row["severity"] for row in summary["alerts_by_severity"]],
+                    "count": [row["count"] for row in summary["alerts_by_severity"]],
+                },
+                x="severity",
+                y="count",
+                horizontal=True,
+            )
         else:
             empty("No alerts yet", "Run the synthetic walkthrough to populate the severity chart.")
         st.subheader("Frequently involved entities")
@@ -135,7 +141,14 @@ def overview(db: Path) -> None:
     with right:
         st.subheader("Incident creation activity")
         if summary["activity"]:
-            st.line_chart(pd.DataFrame(summary["activity"]).set_index("date"), y="incidents")
+            st.line_chart(
+                {
+                    "date": [row["date"] for row in summary["activity"]],
+                    "incidents": [row["incidents"] for row in summary["activity"]],
+                },
+                x="date",
+                y="incidents",
+            )
         else:
             empty(
                 "No activity recorded", "Creation activity appears after incidents are persisted."
