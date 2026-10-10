@@ -18,7 +18,7 @@ The evaluation module has no Streamlit dependency and does not access the databa
 
 ## Benchmark and ground truth
 
-The versioned benchmark is [data/evaluation/benchmark.json](../data/evaluation/benchmark.json). It contains 19 scenarios and 74 unique event records covering the three shipped rules:
+The versioned benchmark is [data/evaluation/benchmark.json](../data/evaluation/benchmark.json). It contains 19 scenarios and 75 unique event records covering the three shipped rules:
 
 - Authentication bursts: threshold boundary, below-threshold activity, outside-window events, missing source IP, exact grouping, two independent groups, benign mistyped-password behavior, and failures/success ordering.
 - Process execution: encoded-command switch, case variation, ordinary PowerShell, missing command-line telemetry, benign `-Encoding` lookalike, and a substring lookalike.
