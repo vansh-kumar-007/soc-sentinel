@@ -112,7 +112,9 @@ def _emit(value: Any, json_output: bool) -> None:
                     f"{item.title} — {item.alert_count} alert(s), {item.event_count} event(s)"
                 )
                 print(f"  ID: {item.incident_id}; version: {item.version}")
-                print(f"  Observed: {item.first_observed.isoformat()} → {item.last_observed.isoformat()}")
+                print(
+                    f"  Observed: {item.first_observed.isoformat()} → {item.last_observed.isoformat()}"
+                )
                 if item.assigned_analyst:
                     print(f"  Analyst: {item.assigned_analyst}")
             elif isinstance(item, dict) and "timestamp" in item:
@@ -123,7 +125,9 @@ def _emit(value: Any, json_output: bool) -> None:
                 if item.get("explanation"):
                     print(f"  {item['explanation']}")
                 if item.get("event_id"):
-                    print(f"  Event: {item['event_id']} (source available: {item.get('source_available')})")
+                    print(
+                        f"  Event: {item['event_id']} (source available: {item.get('source_available')})"
+                    )
                 if item.get("note"):
                     print(f"  Note by {item.get('actor', 'analyst')}: {item['note']}")
                 if item.get("details"):
@@ -155,20 +159,20 @@ def _emit(value: Any, json_output: bool) -> None:
         print(f"Timeline entries: {len(value.get('timeline', []))}")
         return
     if isinstance(value, dict) and {"incident_id", "reference", "status"}.issubset(value):
-        print(
-            f"{value['reference']} [{value['status']}] [{value['severity']}] "
-            f"{value['title']}"
-        )
+        print(f"{value['reference']} [{value['status']}] [{value['severity']}] {value['title']}")
         print(f"ID: {value['incident_id']} | Version: {value['version']}")
         if value.get("assigned_analyst"):
             print(f"Assigned analyst: {value['assigned_analyst']}")
         if value.get("resolution_classification"):
-            print(f"Resolution: {value['resolution_classification']} — {value['resolution_summary']}")
+            print(
+                f"Resolution: {value['resolution_classification']} — {value['resolution_summary']}"
+            )
         return
     if isinstance(value, dict) and "note" in value and "incident_id" in value:
         print(f"Investigation note added to {value['incident_id']} at {value['created_at']}.")
         return
     print(json.dumps(value, indent=2, sort_keys=True, default=str))
+
 
 def handle_incident_command(args: argparse.Namespace) -> int:
     """Run an incident command; 0 success, 1 I/O/storage, 2 config, 3 strict input, 4 operation error."""

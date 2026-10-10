@@ -1,4 +1,5 @@
 """End-to-end incident CLI tests using synthetic JSONL."""
+
 from __future__ import annotations
 
 import json
