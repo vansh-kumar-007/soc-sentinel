@@ -12,7 +12,7 @@ import pytest
 from soc_sentinel.cli import main
 from soc_sentinel.evaluation import (
     EvaluationError,
-    _metrics,
+    calculate_metrics,
     evaluate_dataset,
     render_markdown,
     write_reports,
@@ -73,7 +73,7 @@ def test_identical_runs_produce_identical_reports_and_fingerprints() -> None:
 
 
 def test_zero_denominators_are_null() -> None:
-    metrics = _metrics(Counter())
+    metrics = calculate_metrics(Counter())
     assert metrics == {
         "tp": 0,
         "fp": 0,
@@ -86,7 +86,7 @@ def test_zero_denominators_are_null() -> None:
 
 
 def test_precision_recall_and_f1_use_documented_counts() -> None:
-    metrics = _metrics(Counter({"tp": 6, "fp": 2, "fn": 3, "tn": 10}))
+    metrics = calculate_metrics(Counter({"tp": 6, "fp": 2, "fn": 3, "tn": 10}))
     assert metrics["precision"] == 0.75
     assert metrics["recall"] == 0.666667
     assert metrics["f1"] == 0.705882
