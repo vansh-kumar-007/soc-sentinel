@@ -652,13 +652,13 @@ def evaluation_page() -> None:
         "Detection evaluation",
         "Reproducible rule-quality measurements from the committed synthetic benchmark.",
     )
-    from soc_sentinel.evaluation import EvaluationError, evaluate_dataset
+    from soc_sentinel.evaluation import evaluate_dataset
 
     dataset_path = PROJECT_ROOT / "data" / "evaluation" / "benchmark.json"
     rules_path = PROJECT_ROOT / "rules"
     try:
         report = evaluate_dataset(dataset_path, rules_path)
-    except (EvaluationError, OSError, ValueError) as exc:
+    except (OSError, ValueError) as exc:
         st.error(f"Evaluation could not complete: {exc}")
         return
 
