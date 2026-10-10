@@ -241,29 +241,33 @@ def _matches_condition(event: SecurityEvent, condition: Condition) -> bool:
     expected = condition.value
     operator = condition.operator
     if operator == "eq":
-        return actual == expected
+        return bool(actual == expected)
     if operator == "ne":
-        return actual != expected
+        return bool(actual != expected)
     if operator == "in":
-        return actual in expected
+        return bool(actual in expected)
     if operator == "not_in":
-        return actual not in expected
+        return bool(actual not in expected)
     if operator == "contains":
-        return isinstance(actual, str) and expected in actual
+        return isinstance(actual, str) and isinstance(expected, str) and expected in actual
     if operator == "icontains":
-        return isinstance(actual, str) and expected.casefold() in actual.casefold()
+        return (
+            isinstance(actual, str)
+            and isinstance(expected, str)
+            and expected.casefold() in actual.casefold()
+        )
     if operator == "starts_with":
-        return isinstance(actual, str) and actual.startswith(expected)
+        return isinstance(actual, str) and isinstance(expected, str) and actual.startswith(expected)
     if operator == "ends_with":
-        return isinstance(actual, str) and actual.endswith(expected)
+        return isinstance(actual, str) and isinstance(expected, str) and actual.endswith(expected)
     if operator == "gt":
-        return actual > expected
+        return bool(actual > expected)
     if operator == "gte":
-        return actual >= expected
+        return bool(actual >= expected)
     if operator == "lt":
-        return actual < expected
+        return bool(actual < expected)
     if operator == "lte":
-        return actual <= expected
+        return bool(actual <= expected)
     return False
 
 
