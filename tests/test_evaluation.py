@@ -235,3 +235,38 @@ def test_cli_invalid_dataset_returns_configuration_error(
     missing = tmp_path / "missing.json"
     assert main(["evaluate", "--dataset", str(missing), "--output", str(tmp_path / "out")]) == 2
     assert "evaluation failed:" in capsys.readouterr().err
+
+
+def test_per_rule_metrics_identify_specific_false_positive_sources() -> None:
+    report = evaluate_dataset(DATASET, RULES)
+    by_rule = {item["rule_id"]: item for item in report["per_rule"]}
+    assert (by_rule["DET-001"]["tp"], by_rule["DET-001"]["fp"], by_rule["DET-001"]["fn"]) == (
+        5,
+        1,
+        0,
+    )
+    assert (by_rule["DET-002"]["tp"], by_rule["DET-002"]["fp"], by_rule["DET-002"]["fn"]) == (
+        2,
+        0,
+        0,
+    )
+    assert (by_rule["DET-003"]["tp"], by_rule["DET-003"]["fp"], by_rule["DET-003"]["fn"]) == (
+        3,
+        1,
+        0,
+    )
+
+
+def test_expectation_ids_must_be_unique_across_the_dataset(tmp_path: Path) -> None:
+    data = read_benchmark()
+    duplicate = dict(data["scenarios"][0]["expected_detections"][0])
+    data["scenarios"][1]["expected_detections"].append(duplicate)
+    with pytest.raises(EvaluationError, match="duplicate expectation_id"):
+        evaluate_dataset(write_benchmark(tmp_path, data), RULES)
+
+
+def test_unknown_dataset_metadata_is_rejected(tmp_path: Path) -> None:
+    data = read_benchmark()
+    data["labels_generated_by_detector"] = True
+    with pytest.raises(EvaluationError, match="invalid evaluation dataset"):
+        evaluate_dataset(write_benchmark(tmp_path, data), RULES)
