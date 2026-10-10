@@ -2,32 +2,26 @@
 
 **A local-first detection engineering and incident investigation lab.**
 
-SOC Sentinel is a defensive security project for ingesting structured security events, applying deterministic detection rules, investigating evidence-backed alerts, and evaluating detection quality against reproducible synthetic scenarios.
-
-The first milestone focuses on a reliable Python foundation. Event ingestion, detection, correlation, and the dashboard will be added incrementally.
+SOC Sentinel is a defensive security project for validating security-event records and eventually applying deterministic detections, investigating evidence-backed alerts, and evaluating detection quality using reproducible synthetic scenarios.
 
 ## Principles
 
-- **₹0 by design:** core functionality runs locally without a cloud account, paid service, external database, AI API, or API key.
-- **Defensive-only:** use synthetic fixtures and logs from systems you own or are explicitly authorized to examine.
-- **Evidence first:** detections must be explainable and refer to source events.
-- **Reproducible:** behavior is covered by tests and future detection quality is evaluated against labeled scenarios.
-- **Small, reviewable changes:** each milestone has acceptance criteria and an updated status.
+- **₹0 by design:** local core, no cloud account, paid service, remote database, AI API, or API key.
+- **Defensive-only:** start with synthetic fixtures; use only data from systems you own or are authorized to investigate.
+- **Evidence first:** preserve event source provenance; detection labels are metadata, not evidence.
+- **Reproducible:** behavior is testable and future detection quality is measured against labeled scenarios.
+- **Small milestones:** each phase has explicit acceptance criteria and a project status record.
 
 ## Current status
 
-Phase 1 — Repository Foundation. See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+Phase 2 — Event Ingestion and Normalization. See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
-## Technology choices
+## Requirements
 
 - Python 3.11–3.13
-- Standard-library SQLite for local persistence
-- pytest for tests
-- Ruff for linting and formatting
-- mypy for static type checking
-- GitHub Actions for CI
-
-The Phase 1 package has no runtime dependencies. Development tools are optional extras.
+- SQLite (included in Python)
+- Pydantic 2 for runtime schema validation
+- Development tools: pytest, Ruff, mypy
 
 ## Quick start
 
@@ -43,42 +37,37 @@ ruff format --check .
 mypy src tests
 ```
 
-Try the CLI:
+## CLI
+
+Show the version and initialize or migrate a local database:
 
 ```bash
 soc-sentinel --version
-soc-sentinel check-db ./data/soc-sentinel.sqlite3
+soc-sentinel check-db data/soc-sentinel.sqlite3
 ```
 
-The database command creates a local SQLite database and a small metadata table. Keep real logs and database files out of Git. The version command does not create files or require a database.
+Ingest the bundled synthetic fixture:
 
-## Project layout
+```bash
+soc-sentinel ingest --input data/samples/authentication.jsonl --db data/soc-sentinel.sqlite3
+```
 
-- `src/soc_sentinel/`: CLI and local database foundation
-- `tests/`: behavioral unit tests
-- `docs/`: architecture, threat model, decisions, detection and evaluation plans
-- `.github/workflows/`: automated checks
-- `data/`: local runtime data, ignored by Git
+Non-strict mode (default) continues after invalid JSON/schema records and duplicate IDs within the input. It prints counts and each rejected line number, then persists all valid input records. Event IDs already stored in SQLite are skipped and counted as database duplicates. A database insert error rolls back the whole insert transaction.
 
-## Planned capabilities (not implemented yet)
+Strict mode aborts at the first malformed or schema-invalid record before touching the database:
 
-1. JSONL event ingestion and validation.
-2. Deterministic, schema-validated YAML detection rules.
-3. Evidence-linked alerts and entity/time-window correlation.
-4. Incident investigation workflow and dashboard.
-5. Labeled synthetic evaluation scenarios and reproducible metrics.
-6. Hardening and optional presentation hosting after the core is stable.
+```bash
+soc-sentinel ingest --input data/samples/authentication.jsonl --db data/soc-sentinel.sqlite3 --strict
+```
 
-These are roadmap items, not claims about the current implementation.
+Exit codes: `0` ingestion completed (non-strict mode may report rejected lines); `1` input I/O or database failure; `2` strict validation failure.
+
+See [docs/EVENT_SCHEMA.md](docs/EVENT_SCHEMA.md) for the normalized record contract and [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) for SQLite migrations and storage.
+
+## Planned next
+
+Deterministic YAML rule evaluation, evidence-linked alerts, time/entity correlation, an incident investigation UI, and reproducible detection evaluation are not yet implemented. Do not treat the scenario metadata in input files as detection evidence.
 
 ## Security and privacy
 
-Do not commit credentials, private logs, personal data, or generated database files. Review [SECURITY.md](SECURITY.md). Never test against systems you do not own or have permission to assess.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## License
-
-No software license has been selected yet. See [docs/LICENSING.md](docs/LICENSING.md). Public visibility alone does not grant general permission to reuse this code.
+Do not commit credentials, private logs, personal data, or local database files. Use synthetic or authorized logs only. Review [SECURITY.md](SECURITY.md).
