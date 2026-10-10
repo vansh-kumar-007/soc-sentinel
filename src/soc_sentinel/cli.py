@@ -6,10 +6,14 @@ import argparse
 import sqlite3
 import sys
 from collections.abc import Sequence
+from pathlib import Path
+
+from pydantic import ValidationError
 
 from soc_sentinel import __version__
 from soc_sentinel.db import initialize_database, insert_events
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
+from soc_sentinel.schemas import SecurityEvent
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -43,9 +47,8 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return a process exit status.
 
-    Exit codes: 0 = success; 1 = database/filesystem failure; 2 = input validation
-    errors in strict mode; non-strict mode returns 0 when parsing completes even if
-    individual records were rejected.
+    Exit codes: 0 = ingestion completed (non-strict mode may reject individual lines),
+    1 = I/O or database failure, 2 = strict validation failure.
     """
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -78,7 +81,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Input: {args.input}")
         print(f"Database: {database_path}")
         print(f"Records read: {batch.records_read}")
-        print(f"Records accepted by schema: {len(batch.events)}")
+        print(f"Unique valid records accepted by schema: {len(batch.events)}")
         print(f"Records rejected: {batch.records_rejected}")
         print(f"Duplicate records in input: {batch.duplicate_records}")
         print(f"Duplicates already in database: {duplicates}")
