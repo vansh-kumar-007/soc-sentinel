@@ -668,9 +668,14 @@ def evaluation_page() -> None:
     )
     aggregate = report["aggregate"]
     cols = st.columns(3)
-    cols[0].metric("Precision", "null" if aggregate["precision"] is None else f"{aggregate['precision']:.3f}")
-    cols[1].metric("Recall", "null" if aggregate["recall"] is None else f"{aggregate['recall']:.3f}")
-    cols[2].metric("F1 score", "null" if aggregate["f1"] is None else f"{aggregate['f1']:.3f}")
+    for col, label, key in zip(
+        cols,
+        ["Precision", "Recall", "F1 score"],
+        ["precision", "recall", "f1"],
+        strict=True,
+    ):
+        value = aggregate[key]
+        col.metric(label, "null" if value is None else f"{value:.3f}")
     cols = st.columns(4)
     for col, label, key in zip(
         cols,
