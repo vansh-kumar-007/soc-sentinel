@@ -88,7 +88,7 @@ The final documentation set passed the same CI workflow; this status-only update
 ## Phase 6 — Reproducible detection evaluation
 
 - [x] Audited the Phase 5 final commit, branch state, CI run #200, evaluation plan, event schema, rule loader, detection engine, CLI, dashboard, tests, and docs.
-- [x] Added an independently labeled versioned benchmark at `data/evaluation/benchmark.json` with 19 scenarios, 74 unique event records, and 10 expected detection instances.
+- [x] Added an independently labeled versioned benchmark at `data/evaluation/benchmark.json` with 19 scenarios, 75 unique event records, and 10 expected detection instances.
 - [x] Added strict dataset/event validation, ground-truth isolation checks, unique ID and reference validation, replay semantics, stable fingerprints, and deterministic matching around the existing production detection engine.
 - [x] Added aggregate/per-rule TP, FP, FN, supplemental TN, precision, recall, F1, scenario outcomes, and false-positive/false-negative details.
 - [x] Added JSON and Markdown report generation and the `soc-sentinel evaluate` CLI with optional mismatch exit status.
