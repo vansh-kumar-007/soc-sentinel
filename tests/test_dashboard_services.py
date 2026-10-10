@@ -217,3 +217,18 @@ def test_dashboard_module_imports_without_starting_ui() -> None:
     pytest.importorskip("streamlit")
     module = importlib.import_module("soc_sentinel.dashboard")
     assert callable(module.main)
+
+
+
+def test_dashboard_app_starts_without_creating_a_database(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pytest.importorskip("streamlit")
+    from streamlit.testing.v1 import AppTest
+
+    missing_database = tmp_path / "not-created.sqlite3"
+    monkeypatch.setenv("SOC_SENTINEL_DB", str(missing_database))
+    app_path = Path(__file__).parents[1] / "src" / "soc_sentinel" / "dashboard.py"
+    app = AppTest.from_file(str(app_path), default_timeout=15).run()
+    assert not app.exception
+    assert not missing_database.exists()

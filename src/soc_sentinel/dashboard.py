@@ -36,6 +36,19 @@ DB_PATH = Path(
 SEVERITIES = ["critical", "high", "medium", "low", "informational"]
 STATUSES = ["open", "in_progress", "resolved", "closed"]
 RESOLUTIONS = ["true_positive", "benign_positive", "false_positive", "inconclusive"]
+SEVERITY_DISPLAY = {
+    "critical": "🟥 CRITICAL",
+    "high": "🟧 HIGH",
+    "medium": "🟨 MEDIUM",
+    "low": "🟦 LOW",
+    "informational": "⬜ INFORMATIONAL",
+}
+
+
+def severity_label(value: str) -> str:
+    """Use consistent severity labels without rendering telemetry as HTML."""
+    return SEVERITY_DISPLAY.get(value, "⬜ UNKNOWN")
+
 PAGES = ["Operations overview", "Incident explorer", "Alerts & evidence", "Synthetic lab"]
 CSS = """
 <style>
@@ -78,7 +91,7 @@ def incident_table(items: list[dict[str, Any]]) -> None:
             {
                 "Reference": item["reference"],
                 "Title": item["title"],
-                "Severity": item["severity"].upper(),
+                "Severity": severity_label(item["severity"]),
                 "Status": item["status"].replace("_", " ").title(),
                 "First observed (UTC)": item["first_observed"],
                 "Last observed (UTC)": item["last_observed"],
@@ -183,7 +196,7 @@ def workspace(db: Path, incident_id: str) -> None:
         st.subheader(inc["title"])
         st.write(inc["summary"])
     with state:
-        st.metric("Severity", inc["severity"].upper())
+        st.metric("Severity", severity_label(inc["severity"]))
         st.metric("Status", inc["status"].replace("_", " ").title())
         st.caption(f"Version {inc['version']} · optimistic concurrency")
     cols = st.columns(4)
@@ -222,7 +235,7 @@ def workspace(db: Path, incident_id: str) -> None:
             st.info("No linked alerts are stored for this incident.")
         for alert in data["alerts"]:
             with st.expander(
-                f"{alert['rule_id']} · {alert['severity'].upper()} · {alert['alert_id']}",
+                f"{alert['rule_id']} · {severity_label(alert['severity'])} · {alert['alert_id']}",
                 expanded=len(data["alerts"]) == 1,
             ):
                 st.markdown(f"**{alert['rule_title']}**")
@@ -503,7 +516,7 @@ def alerts_page(db: Path) -> None:
                 "Alert ID": item["alert_id"],
                 "Rule": item["rule_id"],
                 "Title": item["rule_title"],
-                "Severity": item["severity"].upper(),
+                "Severity": severity_label(item["severity"]),
                 "First observed": item["first_observed"],
                 "Last observed": item["last_observed"],
                 "Events": item["event_count"],
@@ -518,7 +531,7 @@ def alerts_page(db: Path) -> None:
     chosen = st.selectbox("Inspect alert", list(by_id))
     alert = by_id[chosen]
     st.subheader(f"{alert['rule_id']} · {alert['rule_title']}")
-    st.caption(f"{alert['alert_id']} · {alert['severity'].upper()}")
+    st.caption(f"{alert['alert_id']} · {severity_label(alert['severity'])}")
     st.write(alert["rationale"])
     st.markdown("**Grouping context**")
     st.json(alert["grouping_context"])
@@ -606,7 +619,7 @@ def synthetic_lab(db: Path) -> None:
                 {
                     "Alert ID": item["alert_id"],
                     "Rule": item["rule_id"],
-                    "Severity": item["severity"].upper(),
+                    "Severity": severity_label(item["severity"]),
                     "Evidence events": item["event_count"],
                     "Rationale": short(item["rationale"]),
                 }
