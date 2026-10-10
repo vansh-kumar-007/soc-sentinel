@@ -11,7 +11,6 @@ import pytest
 from soc_sentinel.cli import main
 from soc_sentinel.schemas import SecurityEvent
 
-
 ROOT = Path(__file__).parents[1]
 RULES = ROOT / "rules"
 
