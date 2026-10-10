@@ -50,7 +50,13 @@ def severity_label(value: str) -> str:
     return SEVERITY_DISPLAY.get(value, "⬜ UNKNOWN")
 
 
-PAGES = ["Operations overview", "Incident explorer", "Alerts & evidence", "Synthetic lab", "Detection evaluation"]
+PAGES = [
+    "Operations overview",
+    "Incident explorer",
+    "Alerts & evidence",
+    "Synthetic lab",
+    "Detection evaluation",
+]
 CSS = """
 <style>
 .block-container{padding-top:1.5rem;padding-bottom:2.5rem;max-width:1500px}
