@@ -26,7 +26,7 @@ UTF-8 JSONL
 
 ## Correlation semantics
 
-Correlation is separate from detection. Supported strategies are shared host, shared username, shared source IP, exact username+source-IP pair, and overlapping evidence event IDs. The policy order controls which explanation is selected when more than one strategy matches. Intervals are linked when their non-overlap gap is less than or equal to the configured window; severity and time proximity alone never form a relationship. Missing entities never match.
+Correlation is separate from detection. Supported strategies are shared host, shared username, shared source IP, exact username+source-IP pair, and overlapping evidence event IDs. The policy order controls which strategy is selected as the primary explanation when more than one strategy matches; all corroborating shared values are also recorded. The default minimum requires two distinct shared key-value pairs, so a lone host, username, source IP, or event reference does not link by itself. Intervals are linked when their non-overlap gap is less than or equal to the configured window; severity and time proximity alone never form a relationship. Missing entities never match.
 
 Transitive connected components are allowed only when allow_transitive is true. The engine records accepted edges and their shared values. Existing incident records are not automatically merged. An alert is assigned to at most one incident; when it matches multiple existing investigations, strategy priority and stable identifiers choose one candidate. See CORRELATION_POLICY.md.
 
