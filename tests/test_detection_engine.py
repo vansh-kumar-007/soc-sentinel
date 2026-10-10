@@ -10,7 +10,6 @@ from soc_sentinel.detection.engine import Alert, evaluate_events
 from soc_sentinel.detection.rules import load_rules
 from soc_sentinel.schemas import SecurityEvent
 
-
 ROOT = Path(__file__).parents[1]
 RULES = load_rules(ROOT / "rules")
 
