@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from soc_sentinel.ingestion.jsonl import parse_jsonl_stream
+from soc_sentinel.ingestion.jsonl import MAX_LINE_BYTES, parse_jsonl_stream
 from tests.test_schemas import authentication_event
 
 
@@ -45,3 +45,16 @@ def test_parser_rejects_non_object_json() -> None:
     result = parse_jsonl_stream(io.StringIO('[]\n"not an object"\n'))
     assert result.records_rejected == 2
     assert all("JSON object" in issue.message for issue in result.issues)
+
+
+def test_oversized_line_is_rejected_without_json_parsing() -> None:
+    result = parse_jsonl_stream(io.StringIO('{"padding":"' + "x" * MAX_LINE_BYTES + '"}'))
+    assert result.records_read == 1
+    assert result.records_rejected == 1
+    assert "maximum allowed size" in result.issues[0].message
+
+
+def test_strict_duplicate_aborts_with_line_number() -> None:
+    row = json.dumps(authentication_event())
+    with pytest.raises(ValueError, match="line 2: duplicate event_id"):
+        parse_jsonl_stream(io.StringIO(row + "\n" + row), strict=True)
