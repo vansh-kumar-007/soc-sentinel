@@ -1,4 +1,4 @@
-# Exact entity equality only; missing values never match.
+# Exact entity equality; missing values never match. Require two shared values; transitivity is an explicit policy opt-in.
 policy_id: default-local-v1
 window_seconds: 1800
 minimum_shared_entities: 2
