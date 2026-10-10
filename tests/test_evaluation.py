@@ -158,7 +158,11 @@ def test_one_alert_cannot_satisfy_two_expectations(tmp_path: Path) -> None:
     }
     scenario["expected_detections"].append(duplicate)
     report = evaluate_dataset(write_benchmark(tmp_path, data), RULES)
-    result = next(item for item in report["scenario_results"] if item["scenario_id"] == scenario["scenario_id"])
+    result = next(
+        item
+        for item in report["scenario_results"]
+        if item["scenario_id"] == scenario["scenario_id"]
+    )
     assert len(result["matched_detections"]) == 1
     assert len(result["missed_detections"]) == 1
     assert report["aggregate"]["fn"] == 1
@@ -294,6 +298,10 @@ def test_duplicate_evidence_in_actual_alert_is_rejected(
         rationale="Synthetic malformed alert for evaluator integrity testing.",
         mitre_attack=["T1110"],
     )
-    monkeypatch.setattr(evaluation, "evaluate_events", lambda events, rules: [duplicate_evidence_alert])
+    monkeypatch.setattr(
+        evaluation,
+        "evaluate_events",
+        lambda events, rules: [duplicate_evidence_alert],
+    )
     with pytest.raises(EvaluationError, match="duplicate evidence IDs"):
         evaluate_dataset(DATASET, RULES)
