@@ -6,7 +6,8 @@ The `correlation.yaml` file is data-only YAML loaded with PyYAML safe loading an
 
 - `policy_id`: short identifier for the policy used during an investigation.
 - `window_seconds`: maximum gap between alert observed intervals (1–604800 seconds). Overlapping intervals have a zero-second gap. The boundary is inclusive.
-- `strategies`: ordered list of supported exact-match relationships. The first matching strategy becomes the explanation for that alert pair.
+- `strategies`: ordered list of supported exact-match relationships. The first matching strategy becomes the primary explanation for that alert pair; all corroborating matches are also recorded.
+- `minimum_shared_entities`: minimum count of distinct shared entity/evidence key-value pairs required (1–4). For example, a username+source-IP pair provides two distinct shared values, while a host-only match provides one.
 - `allow_transitive`: when true, a connected component may include A–B and B–C even when A does not directly match C. When false, only direct relationships from the seed alert join a new incident.
 
 Supported strategies:
