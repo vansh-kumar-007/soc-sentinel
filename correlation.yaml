@@ -1,0 +1,10 @@
+# Exact entity equality only; missing values never match.
+policy_id: default-local-v1
+window_seconds: 1800
+allow_transitive: true
+strategies:
+  - same_username_and_source_ip
+  - shared_event
+  - same_host
+  - same_username
+  - same_source_ip
