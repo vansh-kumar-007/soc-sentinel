@@ -165,6 +165,7 @@ def _validate_scenarios(
     rule_by_id = {rule.rule_id: rule for rule in rules}
     seen_scenarios: set[str] = set()
     seen_events: set[str] = set()
+    seen_expectations: set[str] = set()
     validated: list[tuple[EvaluationScenario, list[SecurityEvent]]] = []
 
     for scenario in dataset.scenarios:
@@ -205,6 +206,11 @@ def _validate_scenarios(
                     f"scenario {scenario.scenario_id} replays unknown event_id {replay_id!r}"
                 )
         for expected in scenario.expected_detections:
+            if expected.expectation_id in seen_expectations:
+                raise EvaluationError(
+                    f"duplicate expectation_id: {expected.expectation_id}"
+                )
+            seen_expectations.add(expected.expectation_id)
             rule = rule_by_id.get(expected.rule_id)
             if rule is None:
                 raise EvaluationError(
@@ -291,6 +297,30 @@ def evaluate_dataset(
     for scenario, events in validated:
         replay_events = [event for event in events if event.event_id in scenario.replay_event_ids]
         alerts = evaluate_events([*events, *replay_events], rules)
+        known_rule_ids = {rule.rule_id for rule in enabled_rules}
+        alert_ids: set[str] = set()
+        input_event_ids = {event.event_id for event in events}
+        for alert in alerts:
+            if alert.alert_id in alert_ids:
+                raise EvaluationError(
+                    f"scenario {scenario.scenario_id} produced duplicate alert_id {alert.alert_id}"
+                )
+            alert_ids.add(alert.alert_id)
+            if alert.rule_id not in known_rule_ids:
+                raise EvaluationError(
+                    f"scenario {scenario.scenario_id} produced alert for unknown or disabled "
+                    f"rule {alert.rule_id}"
+                )
+            if len(alert.evidence_event_ids) != len(set(alert.evidence_event_ids)):
+                raise EvaluationError(
+                    f"scenario {scenario.scenario_id} alert {alert.alert_id} has duplicate evidence IDs"
+                )
+            missing_alert_evidence = set(alert.evidence_event_ids) - input_event_ids
+            if missing_alert_evidence:
+                raise EvaluationError(
+                    f"scenario {scenario.scenario_id} alert {alert.alert_id} references "
+                    f"unknown input event IDs: {', '.join(sorted(missing_alert_evidence))}"
+                )
         unmatched_alerts = list(sorted(alerts, key=lambda item: (item.rule_id, item.alert_id)))
         expected = sorted(scenario.expected_detections, key=lambda item: item.expectation_id)
         matched_expectations: list[dict[str, Any]] = []
