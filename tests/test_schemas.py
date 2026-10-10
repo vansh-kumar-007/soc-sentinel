@@ -79,9 +79,7 @@ def test_valid_network_event_requires_at_least_one_ip() -> None:
         ({"event_type": "unknown"}, "Input should be"),
     ],
 )
-def test_invalid_event_records_are_rejected(
-    overrides: dict[str, Any], message: str
-) -> None:
+def test_invalid_event_records_are_rejected(overrides: dict[str, Any], message: str) -> None:
     with pytest.raises(ValidationError, match=message):
         SecurityEvent.model_validate(authentication_event(**overrides))
 
