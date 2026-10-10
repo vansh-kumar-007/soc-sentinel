@@ -18,7 +18,10 @@ def test_database_has_current_schema_version_metadata(tmp_path: Path) -> None:
         version = connection.execute(
             "SELECT value FROM schema_metadata WHERE key = 'schema_version'"
         ).fetchone()
-        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+        }
     assert version == ("2",)
     assert "events" in tables
 
