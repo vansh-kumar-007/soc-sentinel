@@ -54,18 +54,21 @@ def add_incident_parsers(subparsers: Any) -> None:
     p.add_argument("--actor", default="analyst")
     p.add_argument("--classification", choices=[x.value for x in ResolutionClassification])
     p.add_argument("--summary")
+    p.add_argument("--json", action="store_true", dest="json_output")
     p = subparsers.add_parser("assign-analyst", help="Assign or unassign an analyst.")
     p.add_argument("--db", required=True)
     p.add_argument("--incident-id", required=True)
     p.add_argument("--analyst")
     p.add_argument("--version", required=True, type=int)
     p.add_argument("--actor", default="analyst")
+    p.add_argument("--json", action="store_true", dest="json_output")
     p = subparsers.add_parser("add-note", help="Append a timestamped investigation note.")
     p.add_argument("--db", required=True)
     p.add_argument("--incident-id", required=True)
     p.add_argument("--note", required=True)
     p.add_argument("--actor", default="analyst")
     p.add_argument("--version", type=int)
+    p.add_argument("--json", action="store_true", dest="json_output")
     p = subparsers.add_parser("resolve-incident", help="Resolve with a classification and summary.")
     p.add_argument("--db", required=True)
     p.add_argument("--incident-id", required=True)
@@ -75,6 +78,7 @@ def add_incident_parsers(subparsers: Any) -> None:
     )
     p.add_argument("--summary", required=True)
     p.add_argument("--actor", default="analyst")
+    p.add_argument("--json", action="store_true", dest="json_output")
     p = subparsers.add_parser(
         "reopen-incident", help="Reopen a resolved incident while preserving audit history."
     )
@@ -82,6 +86,7 @@ def add_incident_parsers(subparsers: Any) -> None:
     p.add_argument("--incident-id", required=True)
     p.add_argument("--version", required=True, type=int)
     p.add_argument("--actor", default="analyst")
+    p.add_argument("--json", action="store_true", dest="json_output")
     for name, help_text in [
         ("incident-timeline", "Show chronological evidence and investigation timeline."),
         ("incident-audit", "Show lifecycle and investigation audit history."),
@@ -98,20 +103,72 @@ def _emit(value: Any, json_output: bool) -> None:
         return
     if isinstance(value, list):
         if not value:
-            print("No incidents found.")
+            print("No entries found.")
+            return
         for item in value:
             if hasattr(item, "reference"):
                 print(
-                    f"{item.reference} [{item.status.value}] [{item.severity.value}] {item.title} — {item.alert_count} alert(s), {item.event_count} event(s)"
+                    f"{item.reference} [{item.status.value}] [{item.severity.value}] "
+                    f"{item.title} — {item.alert_count} alert(s), {item.event_count} event(s)"
                 )
                 print(f"  ID: {item.incident_id}; version: {item.version}")
+                print(f"  Observed: {item.first_observed.isoformat()} → {item.last_observed.isoformat()}")
                 if item.assigned_analyst:
                     print(f"  Analyst: {item.assigned_analyst}")
+            elif isinstance(item, dict) and "timestamp" in item:
+                print(
+                    f"{item['timestamp']} [{item.get('timestamp_type', 'unknown')}] "
+                    f"{item.get('kind', 'entry')} ({item.get('provenance', 'unknown')})"
+                )
+                if item.get("explanation"):
+                    print(f"  {item['explanation']}")
+                if item.get("event_id"):
+                    print(f"  Event: {item['event_id']} (source available: {item.get('source_available')})")
+                if item.get("note"):
+                    print(f"  Note by {item.get('actor', 'analyst')}: {item['note']}")
+                if item.get("details"):
+                    print(f"  Details: {json.dumps(item['details'], sort_keys=True)}")
             else:
                 print(json.dumps(item, sort_keys=True, default=str))
-    else:
-        print(json.dumps(value, indent=2, sort_keys=True, default=str))
-
+        return
+    if isinstance(value, dict) and "incident" in value:
+        incident = value["incident"]
+        print(
+            f"{incident['reference']} [{incident['status']}] [{incident['severity']}] "
+            f"{incident['title']}"
+        )
+        print(f"ID: {incident['incident_id']} | Version: {incident['version']}")
+        print(f"Observed: {incident['first_observed']} → {incident['last_observed']}")
+        print(f"Alerts: {incident['alert_count']} | Evidence events: {incident['event_count']}")
+        print(f"Entities: {json.dumps(incident['entities'], sort_keys=True)}")
+        if incident.get("assigned_analyst"):
+            print(f"Assigned analyst: {incident['assigned_analyst']}")
+        for alert in value.get("alerts", []):
+            print(
+                f"- {alert['rule_id']} [{alert['severity']}] {alert['rule_title']} "
+                f"(alert_id={alert['alert_id']})"
+            )
+            print(f"  Evidence: {', '.join(alert['evidence_event_ids'])}")
+            print(f"  Why detected: {alert['rationale']}")
+        for decision in value.get("correlation_explanations", []):
+            print(f"- Correlation: {decision['strategy']} — {decision['explanation']}")
+        print(f"Timeline entries: {len(value.get('timeline', []))}")
+        return
+    if isinstance(value, dict) and {"incident_id", "reference", "status"}.issubset(value):
+        print(
+            f"{value['reference']} [{value['status']}] [{value['severity']}] "
+            f"{value['title']}"
+        )
+        print(f"ID: {value['incident_id']} | Version: {value['version']}")
+        if value.get("assigned_analyst"):
+            print(f"Assigned analyst: {value['assigned_analyst']}")
+        if value.get("resolution_classification"):
+            print(f"Resolution: {value['resolution_classification']} — {value['resolution_summary']}")
+        return
+    if isinstance(value, dict) and "note" in value and "incident_id" in value:
+        print(f"Investigation note added to {value['incident_id']} at {value['created_at']}.")
+        return
+    print(json.dumps(value, indent=2, sort_keys=True, default=str))
 
 def handle_incident_command(args: argparse.Namespace) -> int:
     """Run an incident command; 0 success, 1 I/O/storage, 2 config, 3 strict input, 4 operation error."""
