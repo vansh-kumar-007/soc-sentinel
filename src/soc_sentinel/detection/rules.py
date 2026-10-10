@@ -172,9 +172,10 @@ class DetectionRule(RuleModel):
                     f"grouping field '{field}' is not available for every event type in event_types"
                 )
         for technique in self.mitre_attack:
-            if not isinstance(technique, str) or re.fullmatch(
-                r"T[0-9]{4}(?:\.[0-9]{3})?", technique
-            ) is None:
+            if (
+                not isinstance(technique, str)
+                or re.fullmatch(r"T[0-9]{4}(?:\.[0-9]{3})?", technique) is None
+            ):
                 raise ValueError(f"invalid MITRE ATT&CK technique ID '{technique}'")
         if any(not tag.strip() for tag in self.tags):
             raise ValueError("tags must be non-empty strings")
