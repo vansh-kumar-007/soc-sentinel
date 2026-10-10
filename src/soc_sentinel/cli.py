@@ -1,14 +1,18 @@
-"""Command-line entry point for foundation and ingestion operations."""
+"""Command-line entry point for ingestion, rule validation, and detection."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 import sys
 from collections.abc import Sequence
+from typing import Any
 
 from soc_sentinel import __version__
 from soc_sentinel.db import initialize_database, insert_events
+from soc_sentinel.detection.engine import evaluate_events
+from soc_sentinel.detection.rules import RuleValidationError, load_rules
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
 
 
@@ -37,14 +41,37 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Reject the batch without writing any events if any record is invalid.",
     )
+
+    validate = subparsers.add_parser(
+        "validate-rules", help="Safely parse and validate YAML detection rules."
+    )
+    validate.add_argument("--rules", required=True, help="Rule YAML file or directory.")
+
+    detect = subparsers.add_parser(
+        "detect", help="Evaluate normalized JSONL events against validated YAML rules."
+    )
+    detect.add_argument("--input", required=True, help="Path to a UTF-8 JSONL file.")
+    detect.add_argument("--rules", required=True, help="Rule YAML file or directory.")
+    detect.add_argument(
+        "--strict",
+        action="store_true",
+        help="Abort detection if any nonblank input record is invalid.",
+    )
+    detect.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Emit machine-readable JSON rather than a human-readable summary.",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return a process exit status.
 
-    Exit codes: 0 = ingestion completed (non-strict mode may reject individual lines),
-    1 = I/O or database failure, 2 = strict validation failure.
+    Exit codes: 0 = operation completed; 1 = I/O/database failure; 2 = rule
+    validation failure; 3 = strict detection input validation failure.
+    In non-strict ingestion/detection, invalid records are reported and skipped.
     """
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -86,6 +113,75 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("Validation issues:")
             for issue in batch.issues:
                 print(f"  line {issue.line_number}: {issue.message}")
+        return 0
+
+    if args.command == "validate-rules":
+        try:
+            rules = load_rules(args.rules)
+        except RuleValidationError as exc:
+            print(f"soc-sentinel: rule validation failed: {exc}", file=sys.stderr)
+            return 2
+        enabled_count = sum(rule.enabled for rule in rules)
+        print(f"Rules loaded: {len(rules)}")
+        print(f"Rules enabled: {enabled_count}")
+        for rule in rules:
+            print(f"  {rule.rule_id} [{rule.severity.value}] {rule.title}")
+        return 0
+
+    if args.command == "detect":
+        try:
+            rules = load_rules(args.rules)
+        except RuleValidationError as exc:
+            print(f"soc-sentinel: rule validation failed: {exc}", file=sys.stderr)
+            return 2
+        try:
+            batch = parse_jsonl_file(args.input, strict=args.strict)
+        except (OSError, UnicodeError) as exc:
+            print(f"soc-sentinel: cannot read input: {exc}", file=sys.stderr)
+            return 1
+        except ValueError as exc:
+            print(f"soc-sentinel: strict detection rejected input: {exc}", file=sys.stderr)
+            return 3
+
+        alerts = evaluate_events(batch.events, rules)
+        if args.json_output:
+            output: dict[str, Any] = {
+                "input": args.input,
+                "records_read": batch.records_read,
+                "events_evaluated": len(batch.events),
+                "records_rejected": batch.records_rejected,
+                "duplicate_records": batch.duplicate_records,
+                "alerts_triggered": len(alerts),
+                "alerts": [alert.model_dump(mode="json") for alert in alerts],
+                "issues": [
+                    {"line_number": issue.line_number, "message": issue.message}
+                    for issue in batch.issues
+                ],
+            }
+            print(json.dumps(output, indent=2, sort_keys=True))
+            return 0
+
+        print(f"Input: {args.input}")
+        print(f"Rules loaded: {len(rules)} ({sum(rule.enabled for rule in rules)} enabled)")
+        print(f"Records read: {batch.records_read}")
+        print(f"Events evaluated: {len(batch.events)}")
+        print(f"Records rejected: {batch.records_rejected}")
+        print(f"Duplicate records in input: {batch.duplicate_records}")
+        print(f"Alerts triggered: {len(alerts)}")
+        for alert in alerts:
+            group = json.dumps(alert.grouping_context, sort_keys=True)
+            evidence = ", ".join(alert.evidence_event_ids)
+            print(
+                f"- {alert.rule_id} [{alert.severity.value}] {alert.rule_title} "
+                f"(alert_id={alert.alert_id})"
+            )
+            print(f"  Group: {group}")
+            print(f"  Events: {alert.event_count}; evidence: {evidence}")
+            print(f"  Rationale: {alert.rationale}")
+        if batch.issues:
+            print("Input validation issues:", file=sys.stderr)
+            for issue in batch.issues:
+                print(f"  line {issue.line_number}: {issue.message}", file=sys.stderr)
         return 0
 
     parser.error(f"unsupported command: {args.command}")
