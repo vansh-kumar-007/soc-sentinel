@@ -131,7 +131,6 @@ def test_duplicate_rule_ids_are_rejected(tmp_path: Path) -> None:
         load_rules(tmp_path)
 
 
-
 def test_field_value_type_mismatch_is_rejected(tmp_path: Path) -> None:
     path = write_rule(
         tmp_path,
@@ -143,9 +142,7 @@ def test_field_value_type_mismatch_is_rejected(tmp_path: Path) -> None:
             "event_types": ["process"],
             "detection": {
                 "type": "match",
-                "conditions": [
-                    {"field": "process.pid", "operator": "eq", "value": "not-a-number"}
-                ],
+                "conditions": [{"field": "process.pid", "operator": "eq", "value": "not-a-number"}],
             },
         },
     )
