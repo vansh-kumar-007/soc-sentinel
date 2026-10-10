@@ -1,6 +1,6 @@
 # SQLite Database Schema
 
-Phase 1 created `schema_metadata` with schema version `1`. Phase 2's `initialize_database()` migrates a version-1 database to version `2` and creates event storage. Migrations run in the same SQLite connection transaction; a database advertising a future schema version is rejected rather than downgraded.
+Phase 1 created `schema_metadata` at schema version 1. Phase 2 upgrades it to version 2 and creates the local `events` table. Both migration DDL and version updates run in one explicit SQLite transaction. If a migration fails, the transaction rolls back. A newer version is rejected rather than downgraded.
 
 ## Tables
 
@@ -14,22 +14,24 @@ Phase 1 created `schema_metadata` with schema version `1`. Phase 2's `initialize
 
 | Column | Description |
 |---|---|
-| `event_id` | Primary key; event deduplication boundary |
-| `timestamp_utc` | UTC ISO-8601 timestamp, indexed |
-| `event_type` | Event family constrained to supported values |
+| `event_id` | Primary key and deduplication boundary |
+| `timestamp_utc` | UTC ISO-8601 timestamp ending in `Z`, indexed |
+| `event_type` | `authentication`, `process`, or `network` |
 | `host_id`, `username` | Host and account context |
-| `source_ip`, `destination_ip` | Optional validated addresses |
+| `source_ip`, `destination_ip` | Optional validated IP addresses |
 | `action`, `outcome` | Normalized action and result |
-| `process_json` | Optional process metadata serialized as JSON |
-| `source_id` | Source provenance supplied with the event |
+| `process_json` | Optional process metadata as JSON |
+| `source_id` | Supplied source-provenance label |
 | `scenario_json` | Optional evaluation-only metadata |
-| `attributes_json` | Extra source-specific JSON properties |
+| `attributes_json` | Additional source-specific JSON object |
 | `ingested_at_utc` | Database insertion timestamp |
 
-Indexes exist for event timestamp, event type plus timestamp, host, and username.
+Indexes support queries by timestamp, event type and timestamp, host, and username.
 
-## Transactions and duplicate semantics
+## Transactions and duplicates
 
-Events are inserted through parameterized SQL inside a single SQLite transaction. `event_id` uniqueness is enforced by the primary key. Existing IDs are skipped and counted as duplicates rather than overwritten. A database error propagates out of the transaction context and causes rollback of all inserts in that batch.
+Events use parameterized inserts inside one explicit transaction. `event_id` uniqueness is enforced by the primary key. IDs already in the database are skipped, counted, and never overwritten. An unexpected SQL failure rolls back all inserts from that ingestion batch.
 
-The current SQLite model is local, single-user-oriented storage; it is not a multi-writer distributed event store.
+Schema migration and event insertion are independent transactions: migration may succeed even if a later event insertion fails, while no partial events from a failed insert batch are committed.
+
+SQLite is intended for local, single-user MVP storage, not a distributed multi-writer event store.
