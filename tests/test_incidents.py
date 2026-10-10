@@ -93,6 +93,7 @@ def policy(**overrides: object) -> CorrelationPolicy:
         {
             "policy_id": "test-policy",
             "window_seconds": 60,
+            "minimum_shared_entities": 2,
             "strategies": ["same_username_and_source_ip", "shared_event", "same_host"],
             "allow_transitive": True,
             **overrides,
