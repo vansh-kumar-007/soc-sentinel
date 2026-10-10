@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from soc_sentinel.detection.engine import evaluate_events
+from soc_sentinel.detection.engine import Alert, evaluate_events
 from soc_sentinel.detection.rules import load_rules
 from soc_sentinel.schemas import SecurityEvent
 
@@ -60,7 +60,7 @@ def process_event(
     )
 
 
-def alerts_for(rule_id: str, events: list[SecurityEvent]):
+def alerts_for(rule_id: str, events: list[SecurityEvent]) -> list[Alert]:
     return evaluate_events(events, [rule for rule in RULES if rule.rule_id == rule_id])
 
 
@@ -218,3 +218,23 @@ def test_scenario_labels_never_change_detection_result() -> None:
 
 def test_empty_batches_return_no_alerts() -> None:
     assert evaluate_events([], RULES) == []
+
+
+
+def test_failure_then_success_outside_window_does_not_alert() -> None:
+    events = [
+        auth_event("old-fail-0", 0),
+        auth_event("old-fail-1", 1),
+        auth_event("old-fail-2", 2),
+        auth_event("late-success", 603, outcome="success"),
+    ]
+    assert alerts_for("DET-002", events) == []
+
+
+def test_disabled_rule_does_not_emit_alert() -> None:
+    from soc_sentinel.detection.rules import DetectionRule
+
+    rule = next(rule for rule in RULES if rule.rule_id == "DET-001")
+    disabled = DetectionRule.model_validate({**rule.model_dump(mode="json"), "enabled": False})
+    events = [auth_event(f"disabled-{i}", i) for i in range(5)]
+    assert evaluate_events(events, [disabled]) == []
