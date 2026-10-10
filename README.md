@@ -14,7 +14,7 @@ SOC Sentinel is a defensive security project for validating security-event recor
 
 ## Current status
 
-Phase 3 — Deterministic Detection Engineering Engine (implementation and verification in progress). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
+Phase 3 — Deterministic Detection Engineering Engine (implemented; CI verified). See [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Requirements
 
