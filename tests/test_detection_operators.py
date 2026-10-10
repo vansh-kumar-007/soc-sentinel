@@ -8,6 +8,7 @@ from soc_sentinel.detection.engine import evaluate_events
 from soc_sentinel.detection.rules import DetectionRule
 from soc_sentinel.schemas import SecurityEvent
 
+
 def process_event() -> SecurityEvent:
     return SecurityEvent.model_validate(
         {
