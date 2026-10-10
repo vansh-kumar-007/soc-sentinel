@@ -236,7 +236,7 @@ def _ratio(numerator: int, denominator: int) -> float | None:
     return round(numerator / denominator, 6)
 
 
-def _metrics(counts: Counter[str]) -> dict[str, int | float | None]:
+def calculate_metrics(counts: Counter[str]) -> dict[str, int | float | None]:
     tp = counts["tp"]
     fp = counts["fp"]
     fn = counts["fn"]
@@ -430,7 +430,7 @@ def evaluate_dataset(
         per_rule.append({
             "rule_id": rule.rule_id,
             "title": rule.title,
-            **_metrics(counts),
+            **calculate_metrics(counts),
         })
 
     return {
@@ -467,7 +467,7 @@ def evaluate_dataset(
                 "identical dataset bytes, rule bytes, and software behavior."
             ),
         },
-        "aggregate": _metrics(totals),
+        "aggregate": calculate_metrics(totals),
         "per_rule": per_rule,
         "scenario_results": scenario_results,
         "false_positives": all_false_positives,
