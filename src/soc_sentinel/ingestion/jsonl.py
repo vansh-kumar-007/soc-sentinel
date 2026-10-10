@@ -1,4 +1,4 @@
-"""Streaming JSONL parsing with line-oriented error reporting."""
+"""Streaming JSONL parsing with safe errors and deterministic duplicate handling."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from pydantic import ValidationError
 
 from soc_sentinel.schemas import SecurityEvent
 
+MAX_LINE_BYTES = 1_048_576
+
 
 @dataclass(frozen=True, slots=True)
 class IngestionIssue:
@@ -23,12 +25,13 @@ class IngestionIssue:
 
 @dataclass(slots=True)
 class ParsedBatch:
-    """Streaming parse summary; events are retained to allow transactional insert."""
+    """Parse summary; valid events are retained until transactional persistence."""
 
     events: list[SecurityEvent] = field(default_factory=list)
     issues: list[IngestionIssue] = field(default_factory=list)
     records_read: int = 0
     records_rejected: int = 0
+    duplicate_records: int = 0
 
     @property
     def has_errors(self) -> bool:
@@ -42,12 +45,12 @@ def _iter_lines(stream: TextIO) -> Iterator[tuple[int, str]]:
 
 
 def parse_jsonl_stream(stream: TextIO, *, strict: bool = False) -> ParsedBatch:
-    """Parse a text stream one line at a time.
+    """Parse a text stream line by line.
 
-    Blank lines are ignored and do not count as records. In non-strict mode,
-    malformed JSON/schema records are collected as issues and reading continues.
-    In strict mode, the first invalid non-blank record raises ValueError with its
-    line number. The caller decides whether to persist the parsed batch.
+    Blank lines are ignored. In non-strict mode malformed JSON, validation errors,
+    oversized lines, and duplicate IDs within the input are reported and skipped.
+    Strict mode raises on the first bad non-blank line. The caller must persist only
+    after parsing has succeeded, which makes strict failure a no-write operation.
     """
     result = ParsedBatch()
     seen_ids: set[str] = set()
@@ -55,25 +58,31 @@ def parse_jsonl_stream(stream: TextIO, *, strict: bool = False) -> ParsedBatch:
         if not raw_line.strip():
             continue
         result.records_read += 1
+        if len(raw_line.encode("utf-8")) > MAX_LINE_BYTES:
+            _record_issue(
+                result,
+                line_number,
+                f"line exceeds maximum allowed size of {MAX_LINE_BYTES} bytes",
+                strict=strict,
+            )
+            continue
         try:
             decoded = json.loads(raw_line)
             if not isinstance(decoded, dict):
                 raise ValueError("each JSONL record must be a JSON object")
             event = SecurityEvent.model_validate(decoded)
         except (json.JSONDecodeError, ValidationError, ValueError) as exc:
-            message = _format_error(exc)
-            if strict:
-                raise ValueError(f"line {line_number}: {message}") from exc
-            result.records_rejected += 1
-            result.issues.append(IngestionIssue(line_number, message))
+            _record_issue(result, line_number, _format_error(exc), strict=strict)
             continue
 
         if event.event_id in seen_ids:
-            message = f"duplicate event_id '{event.event_id}' within input"
-            if strict:
-                raise ValueError(f"line {line_number}: {message}")
-            result.records_rejected += 1
-            result.issues.append(IngestionIssue(line_number, message))
+            result.duplicate_records += 1
+            _record_issue(
+                result,
+                line_number,
+                f"duplicate event_id '{event.event_id}' within input",
+                strict=strict,
+            )
             continue
         seen_ids.add(event.event_id)
         result.events.append(event)
@@ -81,9 +90,18 @@ def parse_jsonl_stream(stream: TextIO, *, strict: bool = False) -> ParsedBatch:
 
 
 def parse_jsonl_file(path: str | Path, *, strict: bool = False) -> ParsedBatch:
-    """Open a UTF-8 JSONL file and parse it without reading the whole file at once."""
+    """Open a UTF-8 JSONL file and parse it without reading all source text at once."""
     with Path(path).open("r", encoding="utf-8") as stream:
         return parse_jsonl_stream(stream, strict=strict)
+
+
+def _record_issue(
+    result: ParsedBatch, line_number: int, message: str, *, strict: bool
+) -> None:
+    if strict:
+        raise ValueError(f"line {line_number}: {message}")
+    result.records_rejected += 1
+    result.issues.append(IngestionIssue(line_number, message))
 
 
 def _format_error(exc: Exception) -> str:
