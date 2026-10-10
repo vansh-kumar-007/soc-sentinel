@@ -28,6 +28,7 @@ class CorrelationPolicy(BaseModel):
     policy_id: str = Field(pattern=r"^[A-Za-z0-9_.-]{1,80}$")
     window_seconds: int = Field(default=1800, ge=1, le=604800)
     strategies: list[StrategyName] = Field(min_length=1)
+    minimum_shared_entities: int = Field(default=1, ge=1, le=4)
     allow_transitive: bool = True
 
     @model_validator(mode="after")
@@ -104,12 +105,15 @@ def correlate_pair(
     right_entities: dict[str, set[str]],
     policy: CorrelationPolicy,
 ) -> CorrelationDecision | None:
-    """Return the first policy-ordered, explainable relationship between two alerts."""
+    """Return an explainable relationship if the policy's minimum is satisfied."""
     if left.alert_id == right.alert_id:
         return None
     gap = _interval_gap_seconds(left, right)
     if gap > policy.window_seconds:
         return None
+
+    matches: list[tuple[StrategyName, dict[str, str]]] = []
+    shared_entities: set[tuple[str, str]] = set()
     for strategy in policy.strategies:
         shared: dict[str, str] = {}
         if strategy == "shared_event":
@@ -120,7 +124,10 @@ def correlate_pair(
             usernames = left_entities["username"] & right_entities["username"]
             addresses = left_entities["source_ip"] & right_entities["source_ip"]
             if usernames and addresses:
-                shared = {"username": sorted(usernames)[0], "source_ip": sorted(addresses)[0]}
+                shared = {
+                    "username": sorted(usernames)[0],
+                    "source_ip": sorted(addresses)[0],
+                }
         else:
             field = {
                 "same_host": "host_id",
@@ -131,16 +138,30 @@ def correlate_pair(
             if values:
                 shared = {field: sorted(values)[0]}
         if shared:
-            details = ", ".join(f"{key}={value}" for key, value in sorted(shared.items()))
-            return CorrelationDecision(
-                alert_id=left.alert_id,
-                related_alert_id=right.alert_id,
-                strategy=strategy,
-                shared_values=shared,
-                time_gap_seconds=gap,
-                explanation=(
-                    f"Matched {strategy} ({details}); observed-interval gap {gap:g}s "
-                    f"is within the {policy.window_seconds}s policy window."
-                ),
-            )
-    return None
+            matches.append((strategy, shared))
+            shared_entities.update(shared.items())
+
+    if not matches or len(shared_entities) < policy.minimum_shared_entities:
+        return None
+    primary_strategy = matches[0][0]
+    all_shared_values = {
+        key: value for key, value in sorted(shared_entities)
+    }
+    strategy_names = ", ".join(strategy for strategy, _ in matches)
+    details = ", ".join(
+        f"{key}={value}" for key, value in sorted(all_shared_values.items())
+    )
+    explanation = (
+        f"Matched {primary_strategy}; corroborating strategies: {strategy_names}. "
+        f"Shared values: {details}. {len(shared_entities)} distinct shared entity/evidence "
+        f"identifier(s) meet the configured minimum of {policy.minimum_shared_entities}; "
+        f"observed-interval gap {gap:g}s is within the {policy.window_seconds}s policy window."
+    )
+    return CorrelationDecision(
+        alert_id=left.alert_id,
+        related_alert_id=right.alert_id,
+        strategy=primary_strategy,
+        shared_values=all_shared_values,
+        time_gap_seconds=gap,
+        explanation=explanation,
+    )
