@@ -49,8 +49,8 @@ def parse_jsonl_stream(stream: TextIO, *, strict: bool = False) -> ParsedBatch:
 
     Blank lines are ignored. In non-strict mode malformed JSON, validation errors,
     oversized lines, and duplicate IDs within the input are reported and skipped.
-    Strict mode raises on the first bad non-blank line. The caller must persist only
-    after parsing has succeeded, which makes strict failure a no-write operation.
+    Duplicate rows count as rejected and duplicate records. Strict mode raises on
+    the first rejected line, before the caller persists the parsed events.
     """
     result = ParsedBatch()
     seen_ids: set[str] = set()
@@ -77,10 +77,11 @@ def parse_jsonl_stream(stream: TextIO, *, strict: bool = False) -> ParsedBatch:
 
         if event.event_id in seen_ids:
             result.duplicate_records += 1
-            if strict:
-                raise ValueError(f"line {line_number}: duplicate event_id '{event.event_id}' within input")
-            result.issues.append(
-                IngestionIssue(line_number, f"duplicate event_id '{event.event_id}' within input")
+            _record_issue(
+                result,
+                line_number,
+                f"duplicate event_id '{event.event_id}' within input",
+                strict=strict,
             )
             continue
         seen_ids.add(event.event_id)
