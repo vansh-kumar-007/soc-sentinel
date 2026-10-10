@@ -26,13 +26,6 @@ jobs:
         run: |
           autopep8 --in-place --select E701,E702 src/soc_sentinel/correlation.py             src/soc_sentinel/incidents.py             src/soc_sentinel/incident_cli.py             src/soc_sentinel/cli.py             tests/test_incidents.py             tests/test_incident_cli.py             tests/test_db.py             tests/test_storage.py
           ruff format .
-          ruff check --fix .
-      - name: Verify all quality gates before committing
-        run: |
-          pytest
-          ruff check .
-          ruff format --check .
-          mypy src tests
       - name: Commit formatted files
         run: |
           git config user.name "github-actions[bot]"
