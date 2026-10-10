@@ -7,12 +7,9 @@ import sqlite3
 import sys
 from collections.abc import Sequence
 
-from pydantic import ValidationError
-
 from soc_sentinel import __version__
 from soc_sentinel.db import initialize_database, insert_events
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
-from soc_sentinel.schemas import SecurityEvent
 
 
 def _build_parser() -> argparse.ArgumentParser:
