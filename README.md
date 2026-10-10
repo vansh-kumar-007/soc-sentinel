@@ -18,7 +18,7 @@ SOC Sentinel turns normalized synthetic security events into evidence-linked ale
 - Searchable incident explorer with status, severity, time, analyst, host, and username filters.
 - Investigation workspace with linked alerts, event evidence, correlation explanations, timeline provenance, notes, and audit history.
 - Lifecycle controls for assignment, status, resolution, reopening, and confirmed terminal closure.
-- Synthetic lab to run bundled JSONL fixtures through the real detection and correlation services.
+- Synthetic lab to run bundled JSONL fixtures through the real detection and correlation services.\n- Reproducible synthetic detection evaluation with independent ground truth, evidence-aware matching, per-rule metrics, and JSON/Markdown reports.
 - CLI and dashboard share the same application layer; Streamlit is an optional extra and is not imported by normal CLI startup.
 
 ## Architecture
@@ -27,7 +27,7 @@ SOC Sentinel turns normalized synthetic security events into evidence-linked ale
 flowchart TD
   A[Bundled synthetic JSONL] --> B[Validated SecurityEvent]
   B --> C[Deterministic detection engine]
-  C --> D[Evidence-linked alerts]
+  C --> D[Evidence-linked alerts]\n  V --> R[Deterministic JSON and Markdown reports]
   D --> E[Explainable correlation service]
   E --> F[(SQLite schema v3)]
   F --> G[Framework-independent dashboard services]
@@ -61,6 +61,16 @@ mypy src tests
 ```
 
 To install only the CLI runtime, use `python -m pip install -e .`; Streamlit is not required for ingestion, detection, correlation, or incident CLI commands.
+
+## Reproduce detection evaluation
+
+Run the committed synthetic benchmark against the existing shipped rules:
+
+```bash
+soc-sentinel evaluate --dataset data/evaluation/benchmark.json --rules rules/ --output reports/evaluation/
+```
+
+This writes `evaluation.json` and `evaluation.md` under the local report directory. Use `--json` to print the complete report to stdout, or `--fail-on-mismatch` to return exit code 3 if the benchmark identifies false positives or false negatives. Evaluation uses the existing detection engine; ground-truth labels remain outside event records. The benchmark is synthetic and its precision/recall values must not be interpreted as production SOC performance. See [docs/EVALUATION.md](docs/EVALUATION.md).
 
 ## Start the dashboard locally
 
@@ -138,4 +148,4 @@ Do not bind the service to a public interface. An unauthenticated dashboard with
 
 CI runs pytest, Ruff lint, Ruff formatting, and mypy on Python 3.11, 3.12, and 3.13. See [GitHub Actions](https://github.com/vansh-kumar-007/soc-sentinel/actions) and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
-Known limitations include a local single-user workflow, exact-identifier correlation, in-memory event evaluation, and no live telemetry ingestion. Phase 6 detection evaluation is not part of this milestone.
+Known limitations include a local single-user workflow, exact-identifier correlation, in-memory event evaluation, and no live telemetry ingestion. Detection evaluation uses a small synthetic benchmark and is not a substitute for production telemetry validation.
