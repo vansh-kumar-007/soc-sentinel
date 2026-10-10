@@ -24,7 +24,7 @@ jobs:
           python -m pip install -e ".[dev]" autopep8
       - name: Format Phase 4 files
         run: |
-          autopep8 --in-place --aggressive             src/soc_sentinel/correlation.py             src/soc_sentinel/incidents.py             src/soc_sentinel/incident_cli.py             src/soc_sentinel/cli.py             tests/test_incidents.py             tests/test_incident_cli.py             tests/test_db.py             tests/test_storage.py
+          autopep8 --in-place --select E701,E702 src/soc_sentinel/correlation.py             src/soc_sentinel/incidents.py             src/soc_sentinel/incident_cli.py             src/soc_sentinel/cli.py             tests/test_incidents.py             tests/test_incident_cli.py             tests/test_db.py             tests/test_storage.py
           ruff format .
           ruff check --fix .
       - name: Verify all quality gates before committing
