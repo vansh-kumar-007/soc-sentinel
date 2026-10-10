@@ -136,7 +136,9 @@ def test_pair_correlation_requires_matching_entity_and_time_window() -> None:
     ent_a, ent_b = alert_entities(a, {"e1": ev1}), alert_entities(b, {"e2": ev2})
     decision = correlate_pair(a, b, ent_a, ent_b, policy())
     assert decision is not None and decision.strategy == "same_username_and_source_ip"
-    assert decision.shared_values == {"username": "alice", "source_ip": "192.0.2.10"}
+    assert decision.shared_values["username"] == "alice"
+    assert decision.shared_values["source_ip"] == "192.0.2.10"
+    assert decision.shared_values["host_id"] == "host-a"
     assert "within the 60s policy window" in decision.explanation
     far = alert("a3", "e2", 61)
     assert correlate_pair(a, far, ent_a, alert_entities(far, {"e2": ev2}), policy()) is None
@@ -159,6 +161,40 @@ def test_different_entities_and_missing_values_do_not_correlate() -> None:
         correlate_pair(missing, other, alert_entities(missing, {}), alert_entities(other, {}), p)
         is None
     )
+
+
+
+def test_minimum_shared_entity_requirement_filters_weak_links() -> None:
+    left = alert("left", "e1")
+    right = alert(
+        "right",
+        "e2",
+        username="bob",
+        source_ip="198.51.100.8",
+        host_id="host-a",
+    )
+    left_entities = alert_entities(left, {})
+    right_entities = alert_entities(right, {})
+    weak_policy = policy(
+        strategies=["same_host"],
+        minimum_shared_entities=2,
+    )
+    assert correlate_pair(left, right, left_entities, right_entities, weak_policy) is None
+
+    corroborated_policy = policy(
+        strategies=["same_username_and_source_ip"],
+        minimum_shared_entities=2,
+    )
+    same_user = alert("same-user", "e3", username="alice", source_ip="192.0.2.10")
+    decision = correlate_pair(
+        left,
+        same_user,
+        left_entities,
+        alert_entities(same_user, {}),
+        corroborated_policy,
+    )
+    assert decision is not None
+    assert set(decision.shared_values) == {"username", "source_ip"}
 
 
 def test_shared_event_is_an_explicit_supported_relationship() -> None:
