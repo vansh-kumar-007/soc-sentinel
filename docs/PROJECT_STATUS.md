@@ -97,6 +97,8 @@ The final documentation set passed the same CI workflow; this status-only update
 - [x] Updated README, architecture, and evaluation methodology.
 - [ ] Final full test suite, Ruff lint/format, and mypy verification on Python 3.11, 3.12, and 3.13.
 - [ ] Final-head GitHub Actions verification and final repository hygiene audit.
+
+Verification note: the connected GitHub integration did not expose push-triggered workflow-run metadata for the Phase 6 commits, and the combined commit-status query returned no status entries. The final-head CI result is therefore still unverified here; do not mark Phase 6 verified until the run for the current main SHA is confirmed in [GitHub Actions](https://github.com/vansh-kumar-007/soc-sentinel/actions/workflows/ci.yml).
 - [ ] Publish measured benchmark outcomes and update this checklist after CI results are confirmed.
 
 ### Phase 6 findings to review
