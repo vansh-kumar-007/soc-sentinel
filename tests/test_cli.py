@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
+from pathlib import Path
+
 from soc_sentinel.cli import main
 
 
-def test_version_flag(capsys) -> None:
+def test_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
     try:
         main(["--version"])
     except SystemExit as exc:
@@ -14,7 +17,9 @@ def test_version_flag(capsys) -> None:
     assert captured.out.strip() == "soc-sentinel 0.1.0"
 
 
-def test_check_db_creates_database(tmp_path, capsys) -> None:
+def test_check_db_creates_database(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     database_path = tmp_path / "nested" / "soc.sqlite3"
 
     assert main(["check-db", str(database_path)]) == 0
@@ -22,7 +27,9 @@ def test_check_db_creates_database(tmp_path, capsys) -> None:
     assert "SQLite database ready:" in capsys.readouterr().out
 
 
-def test_check_db_invalid_parent_returns_error(tmp_path, capsys) -> None:
+def test_check_db_invalid_parent_returns_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     blocker = tmp_path / "not-a-directory"
     blocker.write_text("file blocks directory creation", encoding="utf-8")
 
