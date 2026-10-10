@@ -17,7 +17,7 @@ detection:
         - pwsh
     - field: process.command_line
       operator: icontains
-      value: -enc
+      value: -encodedcommand
 group_by:
   - host_id
 mitre_attack:
