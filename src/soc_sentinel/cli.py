@@ -6,8 +6,6 @@ import argparse
 import sqlite3
 import sys
 from collections.abc import Sequence
-from pathlib import Path
-
 from soc_sentinel import __version__
 from soc_sentinel.db import initialize_database, insert_events
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
