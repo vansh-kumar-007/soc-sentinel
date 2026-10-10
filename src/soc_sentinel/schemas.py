@@ -9,9 +9,8 @@ from __future__ import annotations
 import ipaddress
 import re
 from datetime import UTC, datetime
-from typing import Self
 from enum import StrEnum
-from typing import Any
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
