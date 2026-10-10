@@ -6,7 +6,7 @@ Last updated: 2026-10-10
 
 **Phase 3 — Deterministic Detection Engineering Engine: implementation complete; code verification passed.**
 
-Phase 2 is complete and verified. Phase 3 source code, initial YAML rules, tests, and documentation are committed to `main`. The implementation passed the complete Python 3.11–3.13 quality matrix; final documentation-only changes are being checked by CI.
+Phase 2 is complete and verified. Phase 3 source code, initial YAML rules, tests, and documentation are committed to `main`. The implementation and final documentation-only changes passed the complete Python 3.11–3.13 quality matrix.
 
 ## Phase checklist
 
