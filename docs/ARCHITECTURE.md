@@ -1,54 +1,45 @@
 # Architecture
 
-## Phase 1 boundary
-
-Phase 1 establishes packaging, CLI behavior, a local SQLite bootstrap, tests, documentation, and CI. It does not implement event ingestion, detection rules, correlation, incidents, or a dashboard.
-
-## Intended data flow
+## Implemented Phase 1–2 data flow
 
 ```text
-JSONL / authorized local logs
-        |
-        v
-Parser + schema validation
-        |
-        v
-Normalized events (UTC timestamps, stable fields, provenance)
-        |
-        v
-Deterministic YAML rule evaluation
-        |
-        v
-Evidence-linked alerts
-        |
-        v
-Time/entity correlation -> incidents
-        |
-        v
-Local SQLite persistence -> investigation UI
-        |
-        v
-Labeled scenario evaluation (precision, recall, F1, latency)
+UTF-8 JSONL file
+    |
+    v
+Streaming line reader -> line-numbered parse/validation issues
+    |
+    v
+Pydantic normalized SecurityEvent (UTC timestamps, validated IPs, provenance)
+    |
+    v
+Transactional SQLite inserts (event_id primary key, versioned schema)
 ```
 
-This is the planned architecture; stages after repository foundation are not implemented.
+Phase 2 implements the normalized event contract, JSONL reader, local SQLite migration/event table, and CLI. Deterministic detection rules, alert correlation, incident cases, and the dashboard are not implemented.
 
 ## Design constraints
 
-- Local-first runtime. SQLite from the Python standard library is the initial persistence layer.
-- No cloud database, hosted queue, paid API, or API key is required for core functionality.
-- Validate inputs at boundaries; event data and rule files are untrusted.
-- Rule operators must be allow-listed and data-only. Never evaluate arbitrary Python, shell, or expressions from rule files.
-- Store timestamps consistently in UTC and retain provenance so alerts can be audited.
-- Use synthetic and labeled evaluation data; publish metrics only when computed reproducibly.
-- Keep UI concerns separate from ingestion, detections, and storage.
+- Local-first runtime; SQLite comes from the Python standard library.
+- Pydantic is the only runtime dependency and is used for typed boundary validation.
+- No cloud database, hosted queue, paid API, or API key is required.
+- Treat event data as untrusted. Unknown top-level fields are rejected.
+- Timestamps must include a timezone and are normalized to UTC.
+- Event IDs are unique in SQLite. Existing IDs are skipped; no overwrites occur.
+- Strict ingestion rejects the batch on its first malformed record before persistence. Non-strict ingestion reports line-numbered errors, continues parsing, and persists all valid unique records in one transaction.
+- Synthetic scenario labels are retained only as evaluation metadata and must never drive a detection decision.
+- JSONL is read line by line. The current implementation retains validated events for a batch transaction, so memory is proportional to valid events in one input file. A configurable maximum file/line size and database-batched streaming are hardening follow-ups.
+- All tests are deterministic and do not contact external systems.
+
+## Database evolution
+
+The Phase 1 schema version is 1. Phase 2 migrates it in-place to schema version 2, adding the `events` table and indexes. See [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md).
 
 ## Phase evolution
 
-1. Repository foundation: package, CLI, SQLite bootstrap, docs, tests, CI.
-2. Ingestion: bounded JSONL parser, normalized-event validation, timestamps and provenance.
-3. Detection engine: safe YAML schema and deterministic rules with evidence-linked results.
-4. Correlation: group related alerts by entities and bounded time windows.
-5. Dashboard: local event/alert/incident exploration.
-6. Evaluation: labeled synthetic fixtures and reproducible metrics.
-7. Hardening/release: abuse cases, dependency review, reproducibility and optional hosting assessment.
+1. Repository foundation: package, CLI, SQLite bootstrap, docs, tests, CI — complete.
+2. Event normalization and JSONL ingestion with SQLite persistence — implementation under verification.
+3. Safe deterministic detection rules and evidence-linked alerts.
+4. Correlation of related alerts into incidents.
+5. Local investigation dashboard.
+6. Labeled synthetic evaluation and reproducible metrics.
+7. Hardening and optional presentation hosting.
