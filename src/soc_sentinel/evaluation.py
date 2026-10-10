@@ -312,7 +312,12 @@ def evaluate_dataset(
 
     for scenario, events in validated:
         replay_events = [event for event in events if event.event_id in scenario.replay_event_ids]
-        alerts = evaluate_events([*events, *replay_events], rules)
+        try:
+            alerts = evaluate_events([*events, *replay_events], rules)
+        except Exception as exc:
+            raise EvaluationError(
+                f"detection engine failed for scenario {scenario.scenario_id}: {exc}"
+            ) from exc
         known_rule_ids = {rule.rule_id for rule in enabled_rules}
         alert_ids: set[str] = set()
         input_event_ids = {event.event_id for event in events}
