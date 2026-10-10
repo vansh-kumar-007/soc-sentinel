@@ -67,7 +67,7 @@ The Phase 1 schema version is 1. Phase 2 migrates it in-place to schema version 
 
 1. Repository foundation: package, CLI, SQLite bootstrap, docs, tests, CI — complete.
 2. Event normalization and JSONL ingestion with SQLite persistence — complete.
-3. Safe deterministic rules and evidence-linked alerts — implementation in progress; see [DETECTION_CATALOG.md](DETECTION_CATALOG.md).
+3. Safe deterministic rules and evidence-linked alerts — implemented and CI verified; see [DETECTION_CATALOG.md](DETECTION_CATALOG.md).
 4. Correlation of related alerts into incidents.
 5. Local investigation dashboard.
 6. Labeled synthetic evaluation and reproducible metrics.
