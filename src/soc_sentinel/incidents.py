@@ -263,6 +263,16 @@ def correlate_and_persist(
         assignment = {row["alert_id"]: row["incident_id"] for row in rows}
         statuses = {row["incident_id"]: row["status"] for row in rows}
         active_ids = {incident_id for incident_id, status in statuses.items() if status != "closed"}
+        anchors: dict[str, str] = {}
+        for incident_id in active_ids:
+            anchor_row = connection.execute(
+                """SELECT ia.alert_id FROM incident_alerts ia
+                JOIN alerts a USING (alert_id) WHERE ia.incident_id=?
+                ORDER BY a.first_observed, ia.alert_id LIMIT 1""",
+                (incident_id,),
+            ).fetchone()
+            if anchor_row is not None:
+                anchors[incident_id] = anchor_row["alert_id"]
         # Existing incidents are never merged; a new alert chooses one deterministic best match.
         for alert in sorted(
             incoming.values(), key=lambda item: (item.first_observed, item.alert_id)
@@ -273,6 +283,8 @@ def correlate_and_persist(
             for related_id in sorted(all_alerts):
                 incident_id = assignment.get(related_id)
                 if not incident_id or incident_id not in active_ids or related_id == alert.alert_id:
+                    continue
+                if not policy.allow_transitive and anchors.get(incident_id) != related_id:
                     continue
                 decision = correlate_pair(
                     alert,
