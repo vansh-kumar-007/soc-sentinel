@@ -44,9 +44,7 @@ def test_strict_cli_does_not_create_database_after_invalid_input(
     database_path = tmp_path / "events.sqlite3"
     input_path.write_text("{invalid}\n", encoding="utf-8")
 
-    status = main(
-        ["ingest", "--input", str(input_path), "--db", str(database_path), "--strict"]
-    )
+    status = main(["ingest", "--input", str(input_path), "--db", str(database_path), "--strict"])
 
     assert status == 2
     assert "line 1:" in capsys.readouterr().err
