@@ -10,6 +10,7 @@ Phase 5 remains implemented and verified; see the previous verification record b
 
 Repository: https://github.com/vansh-kumar-007/soc-sentinel  
 Integration branch: main  
+Final verification: [manual workflow-dispatch run #267](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38161278282) passed on exact current `main` SHA `8696cd059ba4a1459eaacc3f6c8338d7cd413f8d`: 122 tests passed on Python 3.11, 3.12, and 3.13; Ruff lint, formatting, and mypy passed across the matrix. Python 3.11 rule validation and production benchmark evaluation passed, producing artifact [detection-evaluation-8696cd059ba4a1459eaacc3f6c8338d7cd413f8d](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38161278282/artifacts/11709893555). Measured aggregate metrics: TP 10, FP 1, FN 0, supplemental TN 47, precision 0.909091, recall 1.000000, F1 0.952381. PRs [#1](https://github.com/vansh-kumar-007/soc-sentinel/pull/1) and [#2](https://github.com/vansh-kumar-007/soc-sentinel/pull/2) are merged.
 Starting Phase 4 commit: f9c1042ed6912eb9c92441d49729bdf0c18781f8
 
 ## Phase checklist
