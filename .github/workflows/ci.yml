@@ -42,10 +42,10 @@ jobs:
       - name: Type check
         run: mypy src tests
       - name: Generate reproducible detection evaluation
-        if: matrix.python-version == "3.11"
+        if: matrix.python-version == '3.11'
         run: soc-sentinel evaluate --dataset data/evaluation/benchmark.json --rules rules/ --output reports/evaluation/
       - name: Archive detection evaluation reports
-        if: success() && matrix.python-version == "3.11"
+        if: success() && matrix.python-version == '3.11'
         uses: actions/upload-artifact@v4
         with:
           name: detection-evaluation-${{ github.sha }}

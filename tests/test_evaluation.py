@@ -72,7 +72,7 @@ def test_identical_runs_produce_identical_reports_and_fingerprints() -> None:
     assert first["rules"]["fingerprint_sha256"] == second["rules"]["fingerprint_sha256"]
 
 
-def test_zero_denominators_are_null() -> None:
+def test_zero_denominators_are_handled_independently() -> None:
     metrics = calculate_metrics(Counter())
     assert metrics == {
         "tp": 0,
@@ -83,6 +83,14 @@ def test_zero_denominators_are_null() -> None:
         "recall": None,
         "f1": None,
     }
+    no_predictions = calculate_metrics(Counter({"fn": 1}))
+    assert no_predictions["precision"] is None
+    assert no_predictions["recall"] == 0.0
+    assert no_predictions["f1"] == 0.0
+    no_expected_positives = calculate_metrics(Counter({"fp": 1}))
+    assert no_expected_positives["precision"] == 0.0
+    assert no_expected_positives["recall"] is None
+    assert no_expected_positives["f1"] == 0.0
 
 
 def test_precision_recall_and_f1_use_documented_counts() -> None:

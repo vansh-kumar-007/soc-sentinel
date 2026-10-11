@@ -255,11 +255,12 @@ def calculate_metrics(counts: Counter[str]) -> dict[str, int | float | None]:
     tn = counts["tn"]
     precision = _ratio(tp, tp + fp)
     recall = _ratio(tp, tp + fn)
-    if precision is None or recall is None:
+    f1_denominator = 2 * tp + fp + fn
+    if f1_denominator == 0:
         f1 = None
     else:
         # Use raw counts to avoid double-rounding rounded precision and recall.
-        f1 = round(2 * tp / (2 * tp + fp + fn), 6)
+        f1 = round(2 * tp / f1_denominator, 6)
     return {
         "tp": tp,
         "fp": fp,
@@ -493,7 +494,7 @@ def evaluate_dataset(
             ),
             "precision": "TP / (TP + FP); null if denominator is zero.",
             "recall": "TP / (TP + FN); null if denominator is zero.",
-            "f1": "2 * TP / (2 * TP + FP + FN); null if precision or recall is undefined.",
+            "f1": "2 * TP / (2 * TP + FP + FN); null if its denominator is zero.",
             "tn": "Count of negative scenario-rule opportunities with no alert; not used in P/R/F1.",
             "determinism": (
                 "No wall-clock timestamp is included. JSON and Markdown content are stable for "
