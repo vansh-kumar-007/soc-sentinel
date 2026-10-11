@@ -42,10 +42,9 @@ def test_benchmark_validates_and_exposes_known_rule_limitations() -> None:
     assert report["dataset"]["event_count"] == 75
     assert report["rules"]["rule_ids"] == ["DET-001", "DET-002", "DET-003"]
     assert report["aggregate"]["tp"] >= 8
-    assert report["aggregate"]["fp"] == 1
-    assert report["aggregate"]["fn"] == 0
     assert report["aggregate"]["tp"] == 10
     assert report["aggregate"]["fp"] == 1
+    assert report["aggregate"]["fn"] == 0
     assert report["aggregate"]["tn"] == 47
     assert report["aggregate"]["precision"] == 0.909091
     assert report["aggregate"]["recall"] == 1.0
