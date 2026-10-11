@@ -1,6 +1,6 @@
 # Detection Evaluation
 
-Status: **Phase 6 complete and verified.** The full Python 3.11–3.13 matrix passed in [GitHub Actions run #250](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148398688) on code/test commit `f072a7074282b55c4efb27f23f4fdf437d886a14`; this documentation-only completion record also triggers the same CI workflow on the current `main` SHA.
+Status: **Phase 6 complete and verified.** The exact-head push run [#251](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148691555) passed for `main` SHA `8457cca814a7047b4aebcc6cd69e6db9050fa9b3`: 120 tests, Ruff lint, Ruff formatting, and mypy passed on Python 3.11, 3.12, and 3.13. The Python 3.11 job also passed shipped-rule validation, executed the evaluation CLI against the committed benchmark, and uploaded both reports as artifact `detection-evaluation-8457cca814a7047b4aebcc6cd69e6db9050fa9b3`. Earlier failure/correction history is retained in `docs/PROJECT_STATUS.md`.
 
 ## Reproduce the evaluation
 
