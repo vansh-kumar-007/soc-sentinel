@@ -377,9 +377,7 @@ def test_public_synthetic_preview_does_not_change_public_database(
                 )
             ]
             return {
-                table: sorted(
-                    connection.execute(f'SELECT * FROM "{table}"').fetchall(), key=repr
-                )
+                table: sorted(connection.execute(f'SELECT * FROM "{table}"').fetchall(), key=repr)
                 for table in tables
             }
 

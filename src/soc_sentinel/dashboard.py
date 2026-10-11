@@ -667,7 +667,9 @@ def synthetic_lab(db: Path) -> None:
         cols[2].metric("Shipped rules observed", len(summary["alerts_by_rule"]))
         st.subheader("Detection rules represented in the demo database")
         st.dataframe(summary["alerts_by_rule"], use_container_width=True, hide_index=True)
-        st.caption("These persisted records are bundled synthetic fixtures, not incoming telemetry.")
+        st.caption(
+            "These persisted records are bundled synthetic fixtures, not incoming telemetry."
+        )
     with st.form("synthetic_run"):
         fixture_label = st.selectbox(
             "Synthetic fixture", ["SOC incident walkthrough", "Authentication sample"]
@@ -694,9 +696,7 @@ def synthetic_lab(db: Path) -> None:
             )
 
             if operating_mode() == PUBLIC_DEMO:
-                result = run_public_synthetic_preview(
-                    fixture_key=fixture_key, rule_profile=profile
-                )
+                result = run_public_synthetic_preview(fixture_key=fixture_key, rule_profile=profile)
                 st.session_state["pipeline_result"] = result
                 st.success(
                     "Isolated synthetic preview completed. Its temporary database was discarded; "
@@ -749,7 +749,9 @@ def synthetic_lab(db: Path) -> None:
             hide_index=True,
         )
         st.subheader(
-            "Correlated incidents generated" if operating_mode() == PUBLIC_DEMO else "Persisted incidents"
+            "Correlated incidents generated"
+            if operating_mode() == PUBLIC_DEMO
+            else "Persisted incidents"
         )
         incident_table(result["incidents"])
         if result["incidents"] and operating_mode() != PUBLIC_DEMO:

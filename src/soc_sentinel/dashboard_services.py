@@ -513,7 +513,6 @@ def ensure_public_demo_database(database_path: str | Path) -> dict[str, Any]:
     return {"initialized": True, "database": str(path), "result": result}
 
 
-
 def run_public_synthetic_preview(
     *,
     fixture_key: str = "soc_demo",
