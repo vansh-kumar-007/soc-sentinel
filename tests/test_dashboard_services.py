@@ -7,6 +7,7 @@ import json
 import sqlite3
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -298,7 +299,7 @@ def test_public_demo_mode_rejects_all_dashboard_service_mutations(
             (incident_id,),
         ).fetchone()
     monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
-    attempted = [
+    attempted: list[Callable[[], object]] = [
         lambda: change_incident_status(path, incident_id, "in_progress", 1),
         lambda: assign_incident_to_analyst(path, incident_id, "attacker", 1),
         lambda: add_investigation_note(path, incident_id, "unauthorized note", expected_version=1),
