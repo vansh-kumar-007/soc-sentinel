@@ -1,0 +1,2 @@
+# Install the existing package and its optional Streamlit dashboard dependencies.
+-e .[dashboard]

@@ -29,7 +29,6 @@ from soc_sentinel.incidents import (
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
 from soc_sentinel.operating_mode import (
     PUBLIC_DEMO,
-    OperatingModeError,
     operating_mode,
     require_analyst_mode,
 )

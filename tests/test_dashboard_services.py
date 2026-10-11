@@ -14,7 +14,6 @@ import pytest
 
 from soc_sentinel.dashboard_services import (
     DashboardServiceError,
-    OperatingModeError,
     add_investigation_note,
     assign_incident_to_analyst,
     change_incident_status,
@@ -30,6 +29,7 @@ from soc_sentinel.dashboard_services import (
 from soc_sentinel.db import initialize_database
 from soc_sentinel.demo import seed_demo_database
 from soc_sentinel.incidents import IncidentError
+from soc_sentinel.operating_mode import OperatingModeError
 
 
 def seeded(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
