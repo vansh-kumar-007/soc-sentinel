@@ -273,7 +273,7 @@ def test_cli_json_output_contains_canonical_measured_metrics(
     assert json.loads((output / "evaluation.json").read_text(encoding="utf-8")) == report
 
 
-def test_cli_can_fail_on_benchmark_mismatches(tmp_path: Path) -> None
+def test_cli_can_fail_on_benchmark_mismatches(tmp_path: Path) -> None:
     assert (
         main(
             [
