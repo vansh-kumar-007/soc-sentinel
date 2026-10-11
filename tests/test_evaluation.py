@@ -170,7 +170,18 @@ def test_one_alert_cannot_satisfy_two_expectations(tmp_path: Path) -> None:
     assert report["aggregate"]["fn"] == 1
 
 
-def test_malformed_json_and_duplicate_object_keys_are_rejected(tmp_path: Path) -> None:
+def test_duplicate_replay_ids_are_rejected(tmp_path: Path) -> None:
+    data = read_benchmark()
+    scenario = next(
+        item for item in data["scenarios"]
+        if item["scenario_id"] == "cross-rule-out-of-order-and-replay"
+    )
+    scenario["replay_event_ids"].append(scenario["replay_event_ids"][0])
+    with pytest.raises(EvaluationError, match="replay_event_ids must not contain duplicates"):
+        evaluate_dataset(write_benchmark(tmp_path, data), RULES)
+
+
+def test_malformed_json_and_duplicate_object_keys_are_rejected(tmp_path: Path) -> None
     malformed = tmp_path / "broken.json"
     malformed.write_text("{not-json", encoding="utf-8")
     with pytest.raises(EvaluationError, match="invalid UTF-8 JSON"):
@@ -224,7 +235,37 @@ def test_cli_writes_reports_and_returns_success_for_completed_measurement(
     assert (output / "evaluation.md").is_file()
 
 
-def test_cli_can_fail_on_benchmark_mismatches(tmp_path: Path) -> None:
+def test_cli_json_output_contains_canonical_measured_metrics(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    output = tmp_path / "reports"
+    code = main(
+        [
+            "evaluate",
+            "--dataset",
+            str(DATASET),
+            "--rules",
+            str(RULES),
+            "--output",
+            str(output),
+            "--json",
+        ]
+    )
+    assert code == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["aggregate"] == {
+        "tp": 10,
+        "fp": 2,
+        "fn": 0,
+        "tn": 46,
+        "precision": 0.833333,
+        "recall": 1.0,
+        "f1": 0.909091,
+    }
+    assert json.loads((output / "evaluation.json").read_text(encoding="utf-8")) == report
+
+
+def test_cli_can_fail_on_benchmark_mismatches(tmp_path: Path) -> None
     assert (
         main(
             [
@@ -268,6 +309,27 @@ def test_per_rule_metrics_identify_specific_false_positive_sources() -> None:
         1,
         0,
     )
+    expected_metrics = {
+        "DET-001": (14, 0.833333, 1.0, 0.909091),
+        "DET-002": (17, 1.0, 1.0, 1.0),
+        "DET-003": (15, 0.75, 1.0, 0.857143),
+    }
+    for rule_id, (tn, precision, recall, f1) in expected_metrics.items():
+        assert by_rule[rule_id]["tn"] == tn
+        assert by_rule[rule_id]["precision"] == precision
+        assert by_rule[rule_id]["recall"] == recall
+        assert by_rule[rule_id]["f1"] == f1
+
+    false_positive_evidence = {
+        (item["scenario_id"], item["rule_id"]): item["evidence_event_ids"]
+        for item in report["false_positives"]
+    }
+    assert false_positive_evidence == {
+        ("auth-benign-mistyped-passwords", "DET-001"): [
+            "mistype-1", "mistype-2", "mistype-3", "mistype-4", "mistype-5"
+        ],
+        ("process-encoded-substring-lookalike", "DET-003"): ["substring-lookalike"],
+    }
 
 
 def test_expectation_ids_must_be_unique_across_the_dataset(tmp_path: Path) -> None:

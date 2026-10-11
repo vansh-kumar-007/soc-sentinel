@@ -84,6 +84,8 @@ class EvaluationScenario(BaseModel):
         ids = [item.expectation_id for item in self.expected_detections]
         if len(ids) != len(set(ids)):
             raise ValueError("expectation_id values must be unique within a scenario")
+        if len(self.replay_event_ids) != len(set(self.replay_event_ids)):
+            raise ValueError("replay_event_ids must not contain duplicates")
         return self
 
 
@@ -253,10 +255,11 @@ def calculate_metrics(counts: Counter[str]) -> dict[str, int | float | None]:
     tn = counts["tn"]
     precision = _ratio(tp, tp + fp)
     recall = _ratio(tp, tp + fn)
-    if precision is None or recall is None or precision + recall == 0:
+    if precision is None or recall is None:
         f1 = None
     else:
-        f1 = round(2 * precision * recall / (precision + recall), 6)
+        # Use raw counts to avoid double-rounding rounded precision and recall.
+        f1 = round(2 * tp / (2 * tp + fp + fn), 6)
     return {
         "tp": tp,
         "fp": fp,
@@ -490,7 +493,7 @@ def evaluate_dataset(
             ),
             "precision": "TP / (TP + FP); null if denominator is zero.",
             "recall": "TP / (TP + FN); null if denominator is zero.",
-            "f1": "2 * precision * recall / (precision + recall); null if undefined.",
+            "f1": "2 * TP / (2 * TP + FP + FN); null if precision or recall is undefined.",
             "tn": "Count of negative scenario-rule opportunities with no alert; not used in P/R/F1.",
             "determinism": (
                 "No wall-clock timestamp is included. JSON and Markdown content are stable for "
