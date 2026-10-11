@@ -26,6 +26,7 @@ from soc_sentinel.dashboard_services import (
     list_dashboard_incidents,
     reopen_incident,
     resolve_incident,
+    run_public_synthetic_preview,
     run_synthetic_investigation,
 )
 from soc_sentinel.db import initialize_database
@@ -358,6 +359,37 @@ def test_public_demo_initialization_is_synthetic_and_never_resets_existing_data(
             for table in ("events", "alerts", "incidents", "incident_notes", "incident_audit")
         }
     assert after == before
+
+
+def test_public_synthetic_preview_does_not_change_public_database(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "soc-sentinel-public-demo.sqlite3"
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
+    ensure_public_demo_database(path)
+
+    def snapshot() -> dict[str, list[tuple[object, ...]]]:
+        with sqlite3.connect(path) as connection:
+            tables = [
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+                )
+            ]
+            return {
+                table: sorted(connection.execute(f'SELECT * FROM "{table}"').fetchall(), key=repr)
+                for table in tables
+            }
+
+    before = snapshot()
+    result = run_public_synthetic_preview(fixture_key="soc_demo", rule_profile="all")
+    after = snapshot()
+
+    assert result["fixture"] == "soc-demo.jsonl"
+    assert result["alerts_generated"] > 0
+    assert result["incidents"]
+    assert result["database"] == "ephemeral-public-preview (discarded after execution)"
+    assert before == after
 
 
 def test_invalid_operating_mode_fails_closed(

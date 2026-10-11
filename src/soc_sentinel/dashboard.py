@@ -656,7 +656,9 @@ def synthetic_lab(db: Path) -> None:
     )
     if operating_mode() == PUBLIC_DEMO:
         st.info(
-            "Read-only public demo: this page shows persisted synthetic fixture results. Running the pipeline is enabled only in local analyst mode."
+            "Read-only public demo: a lab run uses a separate temporary SQLite database, "
+            "executes only bundled fixtures and shipped rules, and discards its results afterward. "
+            "It never changes the public demo database or analyst records."
         )
         summary = get_dashboard_summary(db)
         cols = st.columns(3)
@@ -665,8 +667,9 @@ def synthetic_lab(db: Path) -> None:
         cols[2].metric("Shipped rules observed", len(summary["alerts_by_rule"]))
         st.subheader("Detection rules represented in the demo database")
         st.dataframe(summary["alerts_by_rule"], use_container_width=True, hide_index=True)
-        st.caption("These are bundled synthetic fixture records, not incoming live telemetry.")
-        return
+        st.caption(
+            "These persisted records are bundled synthetic fixtures, not incoming telemetry."
+        )
     with st.form("synthetic_run"):
         fixture_label = st.selectbox(
             "Synthetic fixture", ["SOC incident walkthrough", "Authentication sample"]
@@ -684,16 +687,27 @@ def synthetic_lab(db: Path) -> None:
             "Process only": "process",
         }[profile_label]
         st.selectbox("Correlation policy", ["Checked-in policy · correlation.yaml"])
-        submitted = st.form_submit_button(
-            "Run detection + correlation", type="primary", disabled=operating_mode() == PUBLIC_DEMO
-        )
+        submitted = st.form_submit_button("Run detection + correlation", type="primary")
     if submitted:
         try:
-            from soc_sentinel.dashboard_services import run_synthetic_investigation
+            from soc_sentinel.dashboard_services import (
+                run_public_synthetic_preview,
+                run_synthetic_investigation,
+            )
 
-            result = run_synthetic_investigation(db, fixture_key=fixture_key, rule_profile=profile)
-            st.session_state["pipeline_result"] = result
-            st.success("Pipeline completed; the backend returned persisted results.")
+            if operating_mode() == PUBLIC_DEMO:
+                result = run_public_synthetic_preview(fixture_key=fixture_key, rule_profile=profile)
+                st.session_state["pipeline_result"] = result
+                st.success(
+                    "Isolated synthetic preview completed. Its temporary database was discarded; "
+                    "no public or analyst state was changed."
+                )
+            else:
+                result = run_synthetic_investigation(
+                    db, fixture_key=fixture_key, rule_profile=profile
+                )
+                st.session_state["pipeline_result"] = result
+                st.success("Pipeline completed; the backend returned persisted results.")
         except (
             DashboardServiceError,
             CorrelationPolicyError,
@@ -734,9 +748,13 @@ def synthetic_lab(db: Path) -> None:
             use_container_width=True,
             hide_index=True,
         )
-        st.subheader("Persisted incidents")
+        st.subheader(
+            "Correlated incidents generated"
+            if operating_mode() == PUBLIC_DEMO
+            else "Persisted incidents"
+        )
         incident_table(result["incidents"])
-        if result["incidents"]:
+        if result["incidents"] and operating_mode() != PUBLIC_DEMO:
             choices = {
                 f"{item['reference']} · {item['title']}": item["incident_id"]
                 for item in result["incidents"]
@@ -747,7 +765,7 @@ def synthetic_lab(db: Path) -> None:
                 st.session_state["navigation"] = "Incident explorer"
                 st.rerun()
         st.caption(
-            "Repeated runs are idempotent for stable event/alert IDs and incident relationships."
+            "Public previews are isolated and discarded after execution. Local repeated runs are idempotent for stable event/alert IDs and incident relationships."
         )
 
 
