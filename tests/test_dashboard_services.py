@@ -26,8 +26,8 @@ from soc_sentinel.dashboard_services import (
     list_dashboard_incidents,
     reopen_incident,
     resolve_incident,
-    run_synthetic_investigation,
     run_public_synthetic_preview,
+    run_synthetic_investigation,
 )
 from soc_sentinel.db import initialize_database
 from soc_sentinel.demo import seed_demo_database
