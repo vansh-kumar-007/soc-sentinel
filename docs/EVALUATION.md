@@ -1,6 +1,6 @@
 # Detection Evaluation
 
-Status: **Benchmark measurements reproduced by tests; final quality-matrix verification pending.**
+Status: **Phase 6 complete and verified.** The full Python 3.11–3.13 matrix passed in [GitHub Actions run #250](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148398688) on code/test commit `f072a7074282b55c4efb27f23f4fdf437d886a14`; this documentation-only completion record also triggers the same CI workflow on the current `main` SHA.
 
 ## Reproduce the evaluation
 

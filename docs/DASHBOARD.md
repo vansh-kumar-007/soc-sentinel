@@ -33,6 +33,8 @@ The application binds to loopback by default in the checked-in Streamlit config,
 
 The **Detection evaluation** navigation item runs the same framework-independent evaluator used by the CLI against `data/evaluation/benchmark.json` and the checked-in `rules/` directory. It displays aggregate precision, recall, F1, TP/FP/FN/TN counts, per-rule metrics, scenario outcomes, and false-positive/false-negative details. It is available even before a demo SQLite database has been created and does not read or mutate incident state.
 
+Automated verification uses Streamlit `AppTest` to navigate to the evaluation page and assert the measured metrics and false-positive/false-negative detail sections. No separate manual browser session or screenshot verification was performed for Phase 6.
+
 The dashboard does not calculate its own metrics. For the full matching definition, fingerprints, and deterministic JSON/Markdown report generation, see [docs/EVALUATION.md](EVALUATION.md). To write local report files, run:
 
 ```bash
