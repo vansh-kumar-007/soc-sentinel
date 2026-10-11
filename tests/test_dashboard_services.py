@@ -271,6 +271,7 @@ def test_dashboard_evaluation_page_uses_canonical_evaluator_without_database(
     app.radio[0].set_value("Detection evaluation").run()
     assert not app.exception
     assert any("Detection evaluation" in item.value for item in app.title)
+    assert any("PUBLIC · READ ONLY" in item.value for item in app.markdown)
     assert any("Synthetic benchmark only" in item.value for item in app.warning)
     metrics = {item.label: item.value for item in app.metric}
     assert metrics["Precision"] == "0.909"

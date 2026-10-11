@@ -905,6 +905,8 @@ def evaluation_page() -> None:
 def main() -> None:
     st.set_page_config(page_title="SOC Sentinel", page_icon="🛡️", layout="wide")
     st.markdown(CSS, unsafe_allow_html=True)
+    if "SOC_SENTINEL_MODE" not in os.environ:
+        os.environ["SOC_SENTINEL_MODE"] = PUBLIC_DEMO
     try:
         mode = operating_mode()
     except OperatingModeError:
