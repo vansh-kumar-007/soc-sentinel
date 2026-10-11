@@ -24,7 +24,10 @@ RULES = ROOT / "rules"
 
 
 def read_benchmark() -> dict[str, Any]:
-    return json.loads(DATASET.read_text(encoding="utf-8"))
+    parsed: object = json.loads(DATASET.read_text(encoding="utf-8"))
+    if not isinstance(parsed, dict):
+        raise ValueError("benchmark root must be a JSON object")
+    return {str(key): value for key, value in parsed.items()}
 
 
 def write_benchmark(tmp_path: Path, data: dict[str, Any]) -> Path:

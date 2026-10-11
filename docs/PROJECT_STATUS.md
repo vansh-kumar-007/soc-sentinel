@@ -103,6 +103,7 @@ Verification history:
 - [Run #244](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38147274126) failed before creating jobs because the new workflow conditions used invalid double-quoted string literals; the conditions are now single-quoted.
 - [Run #245](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38147435240) surfaced a missing colon in a test definition. Follow-up source inspection found a second missing colon; both are corrected on main.
 - [Run #247](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38147814980) passed pytest (120 tests) and Ruff lint on all three Python versions, then failed Ruff formatting on three files. This commit applies the formatter changes reported by that run. Type checking and report generation did not run because the format gate stopped the jobs.
+- [Run #248](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148111026) passed pytest (120 tests), Ruff lint, and Ruff format on Python 3.11–3.13. Mypy then found one `no-any-return` diagnostic at `tests/test_evaluation.py:27`; `read_benchmark()` returned `json.loads()` directly. This correction validates that the root is an object and returns an explicitly shaped dictionary.
 
 Phase 6 must remain pending until a new run for the current main SHA passes pytest, Ruff lint, Ruff format, mypy, CLI benchmark/report generation, and report artifact upload on the Python 3.11–3.13 matrix.
 - [x] Publish measured benchmark outcomes, per-rule metrics, and each known false-positive evidence set.
