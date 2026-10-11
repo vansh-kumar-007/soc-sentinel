@@ -4,7 +4,7 @@ Last updated: 2026-10-11
 
 ## Current milestone
 
-**Phase 6 — Reproducible Detection Evaluation: Complete and Verified.** The implementation baseline was independently verified by exact-head push run [#252](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404) for `main` SHA `e4fbbc9783a5224c5215e6616e915891cccf1116`: all three Python jobs passed 120 tests each, Ruff lint and formatting, and mypy. The Python 3.11 job also passed shipped-rule validation, ran the evaluation CLI against the committed benchmark, and uploaded the JSON/Markdown reports. The final delivery report records the exact final documentation commit and its own CI result separately.
+**Phase 7 — Detection precision and benchmark trustworthiness: Complete and Verified.** The exact feature head `17616e8a256b1f972be0b77df4cc05f845f78317` passed [manual CI run #263](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38158271822): 122 tests per Python 3.11–3.13 job, Ruff lint/format and mypy passed across the matrix, and Python 3.11 passed rule validation and production evaluation. It was merged to `main` as `1f261add4edefa0d56e490d984eb42a78c1d1afc`; [post-merge CI run #264](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38158602062) independently passed all three jobs and regenerated reports. Phase 6 remains complete and verified as the historical baseline (run [#252](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404)).
 
 Phase 5 remains implemented and verified; see the previous verification record below. The implementation passed [GitHub Actions run #199](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38054736275) on Python 3.11, 3.12, and 3.13: 96 tests per version, Ruff lint, Ruff formatting, and mypy.
 
@@ -14,16 +14,19 @@ Starting Phase 4 commit: f9c1042ed6912eb9c92441d49729bdf0c18781f8
 
 ## Phase checklist
 
-### Phase 7 — Detection precision and benchmark trustworthiness (in progress)
+### Phase 7 — Detection precision and benchmark trustworthiness (complete and verified)
 
 - [x] Add a safe, declarative case-insensitive token-boundary operator for command-line switch detection.
 - [x] Change DET-003 to require a standalone encoded-command switch.
 - [x] Add positive, negative, casing, quoting, and lookalike regression tests.
 - [x] Reproduce before/after benchmark results from the production evaluation CLI and inspect the JSON report artifact.
-- [x] Verify positive/negative switch cases and per-rule/aggregate metrics on Python 3.11–3.13 in [CI run #261](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38157188277).
-- [ ] Re-run all checks on the final documentation and benchmark-narrative head before marking complete.
+- [x] Verify positive/negative switch cases and per-rule/aggregate metrics on the exact PR head in [manual CI run #263](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38158271822).
+- [x] Verify integrated `main` with all three Python jobs, rule validation, evaluation CLI, and report artifact in [post-merge CI run #264](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38158602062).
+- [x] Confirm benchmark labels, event records, and expected detection evidence are unchanged; only explanatory scenario metadata was updated.
+- [x] Confirm JSON/Markdown metric agreement and deterministic report generation through evaluator regression tests.
+- [x] Confirm dashboard evaluation remains covered by automated Streamlit AppTest; no manual browser verification is claimed.
 
-The DET-003 change removes the measured `-EncodedCommandlet` false positive without changing its negative ground-truth label; the production CLI measured aggregate precision 0.909091 and F1 0.952381 with no false negatives. DET-001 remains unchanged: five failed logins alone cannot establish whether activity is malicious. Phase 7 remains in progress until the documentation and benchmark narrative pass CI on the current feature head; see PR #1 for the exact head SHA.
+The DET-003 change removes the measured `-EncodedCommandlet` false positive without changing its negative ground-truth label; the production CLI measured aggregate precision 0.909091 and F1 0.952381 with no false negatives. DET-001 remains unchanged: five failed logins alone cannot establish whether activity is malicious. Phase 7 was merged via [PR #1](https://github.com/vansh-kumar-007/soc-sentinel/pull/1) and the integrated `main` head passed [run #264](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38158602062).
 
 
 ### Phase 1 — Foundation
@@ -132,4 +135,4 @@ The measured false positives are DET-001 on evidence `mistype-1`–`mistype-5` a
 
 ## Next milestone
 
-**Phase 7 is in progress on an isolated feature branch.** See the Phase 7 checklist for implemented work and pending verification.
+**Phase 8 has not started.** Phase 7 is complete and verified; no Phase 8 implementation work has been initiated.
