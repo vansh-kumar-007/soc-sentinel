@@ -32,6 +32,4 @@ def test_public_entrypoint_forces_read_only_mode_and_ignores_analyst_db(
     runpy.run_path(str(entrypoint))
 
     assert captured["mode"] == "public-demo"
-    assert captured["database"] == str(
-        tmp_path / f"soc-sentinel-public-demo-{os.getpid()}.sqlite3"
-    )
+    assert captured["database"] == str(tmp_path / f"soc-sentinel-public-demo-{os.getpid()}.sqlite3")
