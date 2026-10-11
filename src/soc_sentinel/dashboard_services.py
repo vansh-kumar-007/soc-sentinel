@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import tempfile
 from collections import Counter
 from datetime import date
 from pathlib import Path
@@ -510,3 +511,24 @@ def ensure_public_demo_database(database_path: str | Path) -> dict[str, Any]:
         path, fixture_key="soc_demo", rule_profile="all", actor="public-demo-bootstrap"
     )
     return {"initialized": True, "database": str(path), "result": result}
+
+
+
+def run_public_synthetic_preview(
+    *,
+    fixture_key: str = "soc_demo",
+    rule_profile: str = "all",
+) -> dict[str, Any]:
+    """Run an allow-listed synthetic pipeline in an isolated temporary database."""
+    if operating_mode() != PUBLIC_DEMO:
+        raise DashboardServiceError("Synthetic preview is available only in public-demo mode.")
+    with tempfile.TemporaryDirectory(prefix="soc-sentinel-public-preview-") as temporary_directory:
+        result = _run_synthetic_investigation(
+            Path(temporary_directory) / "preview.sqlite3",
+            fixture_key=fixture_key,
+            rule_profile=rule_profile,
+            actor="public-demo-preview",
+        )
+        # Never expose the temporary path; the database is deleted before this returns.
+        result["database"] = "ephemeral-public-preview (discarded after execution)"
+        return result
