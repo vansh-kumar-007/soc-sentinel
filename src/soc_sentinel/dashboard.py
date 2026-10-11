@@ -685,7 +685,7 @@ def synthetic_lab(db: Path) -> None:
             "Process only": "process",
         }[profile_label]
         st.selectbox("Correlation policy", ["Checked-in policy · correlation.yaml"])
-        submitted = st.form_submit_button("Run isolated detection + correlation", type="primary")
+        submitted = st.form_submit_button("Run detection + correlation", type="primary")
     if submitted:
         try:
             from soc_sentinel.dashboard_services import (
