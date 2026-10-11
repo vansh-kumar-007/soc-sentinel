@@ -130,8 +130,7 @@ def get_dashboard_summary(database_path: str | Path) -> dict[str, Any]:
         "total_alerts": sum(severities.values()),
         "alerts_by_severity": severity_rows,
         "alerts_by_rule": [
-            {"rule_id": rule_id, "count": count}
-            for rule_id, count in sorted(rule_counts.items())
+            {"rule_id": rule_id, "count": count} for rule_id, count in sorted(rule_counts.items())
         ],
         "recent_incidents": [_as_dict(item) for item in recent],
         "activity": activity,

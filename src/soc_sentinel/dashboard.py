@@ -373,7 +373,9 @@ def workspace(db: Path, incident_id: str) -> None:
         else:
             st.info("No investigation notes yet.")
         if operating_mode() == PUBLIC_DEMO:
-            st.info("Public demonstration is read-only. Analyst notes are available in local analyst mode.")
+            st.info(
+                "Public demonstration is read-only. Analyst notes are available in local analyst mode."
+            )
         else:
             with st.form("note_form", clear_on_submit=True):
                 actor = st.text_input("Analyst label", value="analyst")

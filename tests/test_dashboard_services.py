@@ -283,7 +283,6 @@ def test_dashboard_evaluation_page_uses_canonical_evaluator_without_database(
     )
 
 
-
 def test_public_demo_mode_rejects_all_dashboard_service_mutations(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
