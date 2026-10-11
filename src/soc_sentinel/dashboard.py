@@ -801,7 +801,7 @@ def evaluation_page() -> None:
         + baseline_source["commit_sha"]
         + ". Current values are recomputed by the canonical evaluator."
     )
-    st.markdown("[Open the original evaluation artifact](" + baseline_source["artifact_url"] + ")")
+    st.markdown("[Open the Phase 6 CI run](" + baseline_source["run_url"] + ")")
     baseline_aggregate = PHASE_6_BASELINE["aggregate"]
     current = {
         "TP": aggregate["tp"],
