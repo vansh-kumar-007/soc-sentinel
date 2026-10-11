@@ -42,20 +42,25 @@ def test_benchmark_validates_and_exposes_known_rule_limitations() -> None:
     assert report["dataset"]["event_count"] == 75
     assert report["rules"]["rule_ids"] == ["DET-001", "DET-002", "DET-003"]
     assert report["aggregate"]["tp"] >= 8
-    assert report["aggregate"]["fp"] >= 2
+    assert report["aggregate"]["fp"] == 1
     assert report["aggregate"]["fn"] == 0
     assert report["aggregate"]["tp"] == 10
-    assert report["aggregate"]["fp"] == 2
-    assert report["aggregate"]["tn"] == 46
-    assert report["aggregate"]["precision"] == 0.833333
+    assert report["aggregate"]["fp"] == 1
+    assert report["aggregate"]["tn"] == 47
+    assert report["aggregate"]["precision"] == 0.909091
     assert report["aggregate"]["recall"] == 1.0
-    assert report["aggregate"]["f1"] == 0.909091
+    assert report["aggregate"]["f1"] == 0.952381
     assert report["summary"]["false_positive_count"] == report["aggregate"]["fp"]
     assert report["summary"]["false_negative_count"] == 0
-    assert {item["scenario_id"] for item in report["false_positives"]} >= {
+    assert {item["scenario_id"] for item in report["false_positives"]} == {
         "auth-benign-mistyped-passwords",
-        "process-encoded-substring-lookalike",
     }
+    lookalike = next(
+        item
+        for item in report["scenario_results"]
+        if item["scenario_id"] == "process-encoded-substring-lookalike"
+    )
+    assert lookalike["outcome"] == "pass"
 
 
 def test_expected_labels_are_not_embedded_in_event_records() -> None:
@@ -216,9 +221,8 @@ def test_report_json_markdown_and_fingerprints_are_stable(tmp_path: Path) -> Non
     assert "Synthetic benchmark only" in first_markdown
     assert "False positives / unexpected alerts" in first_markdown
     assert "Rule-set SHA-256" in first_markdown
-    assert "| 10 | 2 | 0 | 46 | 0.8333 | 1.0000 | 0.9091 |" in first_markdown
+    assert "| 10 | 1 | 0 | 47 | 0.9091 | 1.0000 | 0.9524 |" in first_markdown
     assert "**auth-benign-mistyped-passwords / DET-001**" in first_markdown
-    assert "**process-encoded-substring-lookalike / DET-003**" in first_markdown
     assert render_markdown(report) == first_markdown
 
 
@@ -269,12 +273,12 @@ def test_cli_json_output_contains_canonical_measured_metrics(
     report = json.loads(capsys.readouterr().out)
     assert report["aggregate"] == {
         "tp": 10,
-        "fp": 2,
+        "fp": 1,
         "fn": 0,
-        "tn": 46,
-        "precision": 0.833333,
+        "tn": 47,
+        "precision": 0.909091,
         "recall": 1.0,
-        "f1": 0.909091,
+        "f1": 0.952381,
     }
     assert json.loads((output / "evaluation.json").read_text(encoding="utf-8")) == report
 
@@ -320,13 +324,13 @@ def test_per_rule_metrics_identify_specific_false_positive_sources() -> None:
     )
     assert (by_rule["DET-003"]["tp"], by_rule["DET-003"]["fp"], by_rule["DET-003"]["fn"]) == (
         3,
-        1,
+        0,
         0,
     )
     expected_metrics = {
         "DET-001": (14, 0.833333, 1.0, 0.909091),
         "DET-002": (17, 1.0, 1.0, 1.0),
-        "DET-003": (15, 0.75, 1.0, 0.857143),
+        "DET-003": (16, 1.0, 1.0, 1.0),
     }
     for rule_id, (tn, precision, recall, f1) in expected_metrics.items():
         assert by_rule[rule_id]["tn"] == tn
@@ -346,7 +350,6 @@ def test_per_rule_metrics_identify_specific_false_positive_sources() -> None:
             "mistype-4",
             "mistype-5",
         ],
-        ("process-encoded-substring-lookalike", "DET-003"): ["substring-lookalike"],
     }
 
 
