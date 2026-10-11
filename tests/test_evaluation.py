@@ -399,7 +399,6 @@ def test_duplicate_evidence_in_actual_alert_is_rejected(
         evaluate_dataset(DATASET, RULES)
 
 
-
 def test_phase6_baseline_reference_matches_original_artifact_provenance() -> None:
     baseline = PHASE_6_BASELINE
     assert baseline["source"]["commit_sha"] == "e4fbbc9783a5224c5215e6616e915891cccf1116"
