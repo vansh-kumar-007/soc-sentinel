@@ -750,7 +750,7 @@ def evaluation_page() -> None:
         "Detection evaluation",
         "Reproducible rule-quality measurements from the committed synthetic benchmark.",
     )
-    from soc_sentinel.evaluation import evaluate_dataset
+    from soc_sentinel.evaluation import PHASE_6_BASELINE, evaluate_dataset
 
     dataset_path = PROJECT_ROOT / "data" / "evaluation" / "benchmark.json"
     rules_path = PROJECT_ROOT / "rules"
@@ -788,20 +788,16 @@ def evaluation_page() -> None:
         f"{report['rules']['enabled_rule_count']} enabled rules"
     )
     st.subheader("Phase 6 baseline comparison")
+    baseline_source = PHASE_6_BASELINE["source"]
     st.caption(
-        "Historical reference: verified CI run #252 and artifact "
-        "detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116. "
-        "Current values are recomputed by the canonical evaluator."
+        "Historical reference from verified CI run #252: "
+        + baseline_source["commit_sha"]
+        + ". Current values are recomputed by the canonical evaluator."
     )
-    baseline = {
-        "TP": 10,
-        "FP": 2,
-        "FN": 0,
-        "Supplemental TN*": 46,
-        "Precision": 0.833333,
-        "Recall": 1.0,
-        "F1": 0.909091,
-    }
+    st.markdown(
+        "[Open the original evaluation artifact](" + baseline_source["artifact_url"] + ")"
+    )
+    baseline_aggregate = PHASE_6_BASELINE["aggregate"]
     current = {
         "TP": aggregate["tp"],
         "FP": aggregate["fp"],
@@ -811,8 +807,17 @@ def evaluation_page() -> None:
         "Recall": aggregate["recall"],
         "F1": aggregate["f1"],
     }
+    baseline_metrics = {
+        "TP": baseline_aggregate["tp"],
+        "FP": baseline_aggregate["fp"],
+        "FN": baseline_aggregate["fn"],
+        "Supplemental TN*": baseline_aggregate["tn"],
+        "Precision": baseline_aggregate["precision"],
+        "Recall": baseline_aggregate["recall"],
+        "F1": baseline_aggregate["f1"],
+    }
     comparison_rows = []
-    for metric, baseline_value in baseline.items():
+    for metric, baseline_value in baseline_metrics.items():
         current_value = current[metric]
         if current_value is None:
             delta = "n/a"
@@ -829,6 +834,24 @@ def evaluation_page() -> None:
             }
         )
     st.dataframe(comparison_rows, hide_index=True, use_container_width=True)
+    baseline_by_rule = {
+        item["rule_id"]: item for item in PHASE_6_BASELINE["per_rule"]
+    }
+    rule_comparison = []
+    for item in report["per_rule"]:
+        prior = baseline_by_rule.get(item["rule_id"])
+        if prior is None:
+            continue
+        rule_comparison.append(
+            {
+                "Rule": item["rule_id"],
+                "Current FP": item["fp"],
+                "Phase 6 FP": prior["fp"],
+                "Current F1": item["f1"],
+                "Phase 6 F1": prior["f1"],
+            }
+        )
+    st.dataframe(rule_comparison, hide_index=True, use_container_width=True)
     st.caption(
         "* Supplemental TN counts negative scenario-rule opportunities; it is not conventional "
         "confusion-matrix TN. Synthetic benchmark comparisons do not establish real-world efficacy."

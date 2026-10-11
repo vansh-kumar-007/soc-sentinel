@@ -18,6 +18,64 @@ from soc_sentinel.detection.rules import DetectionRule, RuleValidationError, loa
 from soc_sentinel.schemas import SecurityEvent
 
 REPORT_VERSION = 1
+PHASE_6_BASELINE: dict[str, Any] = {
+    "source": {
+        "commit_sha": "e4fbbc9783a5224c5215e6616e915891cccf1116",
+        "run_url": "https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404",
+        "artifact_name": "detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116",
+        "artifact_url": (
+            "https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/"
+            "38152063404/artifacts/11706852080"
+        ),
+        "dataset_fingerprint_sha256": (
+            "9e53a9c3ef281df8548da43406b368f0dbc1f1008e7987c9c27301904b455195"
+        ),
+        "rules_fingerprint_sha256": (
+            "d5b07b2ac45adec7c3ab980cfa156818a25faba677ff3de0502cacd738c83139"
+        ),
+    },
+    "aggregate": {
+        "tp": 10,
+        "fp": 2,
+        "fn": 0,
+        "tn": 46,
+        "precision": 0.833333,
+        "recall": 1.0,
+        "f1": 0.909091,
+    },
+    "per_rule": [
+        {
+            "rule_id": "DET-001",
+            "tp": 5,
+            "fp": 1,
+            "fn": 0,
+            "tn": 14,
+            "precision": 0.833333,
+            "recall": 1.0,
+            "f1": 0.909091,
+        },
+        {
+            "rule_id": "DET-002",
+            "tp": 2,
+            "fp": 0,
+            "fn": 0,
+            "tn": 17,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+        },
+        {
+            "rule_id": "DET-003",
+            "tp": 3,
+            "fp": 1,
+            "fn": 0,
+            "tn": 15,
+            "precision": 0.75,
+            "recall": 1.0,
+            "f1": 0.857143,
+        },
+    ],
+}
 RESERVED_LABEL_KEYS = {
     "scenario",
     "scenario_id",
