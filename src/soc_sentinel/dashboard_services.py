@@ -27,6 +27,12 @@ from soc_sentinel.incidents import (
     update_status,
 )
 from soc_sentinel.ingestion.jsonl import parse_jsonl_file
+from soc_sentinel.operating_mode import (
+    PUBLIC_DEMO,
+    OperatingModeError,
+    operating_mode,
+    require_analyst_mode,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = {"soc_demo": "soc-demo.jsonl", "authentication": "authentication.jsonl"}
@@ -82,6 +88,12 @@ def get_dashboard_summary(database_path: str | Path) -> dict[str, Any]:
                 "SELECT severity, COUNT(*) AS count FROM alerts GROUP BY severity"
             )
         }
+        rule_counts = {
+            row["rule_id"]: row["count"]
+            for row in connection.execute(
+                "SELECT rule_id, COUNT(*) AS count FROM alerts GROUP BY rule_id"
+            )
+        }
         activity = [
             {"date": row["day"], "incidents": row["count"]}
             for row in reversed(
@@ -118,6 +130,10 @@ def get_dashboard_summary(database_path: str | Path) -> dict[str, Any]:
         "closed_incidents": statuses.get("closed", 0),
         "total_alerts": sum(severities.values()),
         "alerts_by_severity": severity_rows,
+        "alerts_by_rule": [
+            {"rule_id": rule_id, "count": count}
+            for rule_id, count in sorted(rule_counts.items())
+        ],
         "recent_incidents": [_as_dict(item) for item in recent],
         "activity": activity,
         "top_hosts": [{"entity": key, "incidents": value} for key, value in hosts.most_common(8)],
@@ -309,6 +325,7 @@ def change_incident_status(
     *,
     actor: str = "analyst",
 ) -> Incident:
+    require_analyst_mode()
     try:
         target = IncidentStatus(status)
     except ValueError as exc:
@@ -324,6 +341,7 @@ def assign_incident_to_analyst(
     *,
     actor: str = "analyst",
 ) -> Incident:
+    require_analyst_mode()
     return assign_analyst(database_path, incident_id, analyst, expected_version, actor=actor)
 
 
@@ -335,6 +353,7 @@ def add_investigation_note(
     expected_version: int,
     actor: str = "analyst",
 ) -> dict[str, Any]:
+    require_analyst_mode()
     return add_note(
         database_path, incident_id, note, actor=actor, expected_version=expected_version
     )
@@ -349,6 +368,7 @@ def resolve_incident(
     *,
     actor: str = "analyst",
 ) -> Incident:
+    require_analyst_mode()
     try:
         resolution = ResolutionClassification(classification)
     except ValueError as exc:
@@ -371,6 +391,7 @@ def reopen_incident(
     *,
     actor: str = "analyst",
 ) -> Incident:
+    require_analyst_mode()
     current = get_incident(database_path, incident_id, read_only=True)
     if current.status != IncidentStatus.RESOLVED:
         raise IncidentError("only a resolved incident can be reopened")
@@ -379,7 +400,7 @@ def reopen_incident(
     )
 
 
-def run_synthetic_investigation(
+def _run_synthetic_investigation(
     database_path: str | Path,
     *,
     fixture_key: str = "soc_demo",
@@ -416,3 +437,47 @@ def run_synthetic_investigation(
             {"line_number": item.line_number, "message": item.message} for item in batch.issues
         ],
     }
+
+
+def run_synthetic_investigation(
+    database_path: str | Path,
+    *,
+    fixture_key: str = "soc_demo",
+    rule_profile: str = "all",
+    actor: str = "synthetic-demo",
+) -> dict[str, Any]:
+    """Run the bundled pipeline only in local analyst mode."""
+    require_analyst_mode()
+    return _run_synthetic_investigation(
+        database_path, fixture_key=fixture_key, rule_profile=rule_profile, actor=actor
+    )
+
+
+def ensure_public_demo_database(database_path: str | Path) -> dict[str, Any]:
+    """Create a synthetic-only public demo database once; never reset or overwrite it."""
+    mode = operating_mode()
+    if mode != PUBLIC_DEMO:
+        raise DashboardServiceError("Public demo initialization requires public-demo mode.")
+    path = Path(database_path).expanduser().resolve()
+    if path.exists():
+        try:
+            connection = sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True, timeout=3)
+            try:
+                row = connection.execute(
+                    "SELECT value FROM schema_metadata WHERE key='schema_version'"
+                ).fetchone()
+            finally:
+                connection.close()
+        except sqlite3.Error as exc:
+            raise DashboardServiceError(
+                "The public demo database is unavailable; it was not reset."
+            ) from exc
+        if row is None or row[0] != "3":
+            raise DashboardServiceError(
+                "The existing public demo database has an unsupported schema; it was not reset."
+            )
+        return {"initialized": False, "database": str(path)}
+    result = _run_synthetic_investigation(
+        path, fixture_key="soc_demo", rule_profile="all", actor="public-demo-bootstrap"
+    )
+    return {"initialized": True, "database": str(path), "result": result}

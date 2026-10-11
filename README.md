@@ -131,6 +131,12 @@ soc-sentinel correlate --input data/samples/soc-demo.jsonl --rules rules/ --db d
 soc-sentinel list-incidents --db data/soc-sentinel-demo.sqlite3
 ```
 
+## Dashboard modes and deployment
+
+- Local analyst workflow: `SOC_SENTINEL_MODE=local-analyst` (default for the package dashboard) with `SOC_SENTINEL_DB` pointing to a local SQLite file.
+- Public demo: root `streamlit_app.py`; always read-only, synthetic-only, and backed by disposable `/tmp` SQLite storage. Do not override it to expose analyst data.
+- Start locally using the commands in [docs/DASHBOARD.md](docs/DASHBOARD.md). A public deployment requires one-time account authorization at [Streamlit Community Cloud](https://share.streamlit.io/). No paid service or payment method is required by the repository configuration; free-tier availability and uptime are not guaranteed.
+
 ## Screenshots
 
 No screenshots have been captured and verified yet. Capture real screenshots locally after running the dashboard; do not treat this heading as evidence of a live hosted instance.
@@ -146,9 +152,9 @@ Suggested portfolio captures:
 
 ## Security and deployment posture
 
-The dashboard reads SQLite in read-only mode for queries and routes mutations through the existing transactional services. The checked-in Streamlit config disables usage-statistics reporting. The synthetic lab accepts only known fixture names, shipped rule profiles, and the checked-in correlation policy. No arbitrary shell commands, YAML paths, or HTML supplied by telemetry are executed or rendered.
+The dashboard reads SQLite in read-only mode for queries and routes local analyst mutations through the existing transactional services. The root `streamlit_app.py` entry point is specifically for public hosting: it forces synthetic-only public-demo mode, uses a disposable `/tmp` database, and blocks writes at the service layer. The checked-in Streamlit config disables usage-statistics reporting. The synthetic lab accepts only known fixture names, shipped rule profiles, and the checked-in correlation policy. No arbitrary shell commands, YAML paths, or HTML supplied by telemetry are executed or rendered.
 
-Do not bind the service to a public interface. An unauthenticated dashboard with incident details and write controls is unsafe to expose publicly. A future ₹0 deployment would still need authentication, authorization, secret/session handling, TLS, and an explicit persistence strategy; free-host filesystems may be ephemeral. No deployment is configured or performed in this phase.
+For local use, run `streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1`. For a public synthetic-only demonstration, deploy the root `streamlit_app.py` entry point through [Streamlit Community Cloud](https://share.streamlit.io/); it is read-only and does not access local analyst data. The public demo uses disposable temporary SQLite storage, so state is not guaranteed across restarts. It refreshes the current application state but does not receive external telemetry. A hosted URL is not claimed until the service is actually deployed and independently verified. Do not use the public demo for real logs or analyst casework.
 
 ## Quality and project status
 
