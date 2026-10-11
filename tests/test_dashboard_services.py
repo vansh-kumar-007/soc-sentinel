@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 import sqlite3
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +19,7 @@ from soc_sentinel.dashboard_services import (
     add_investigation_note,
     assign_incident_to_analyst,
     change_incident_status,
+    ensure_public_demo_database,
     get_dashboard_summary,
     get_incident_details,
     list_dashboard_alerts,
@@ -28,6 +31,7 @@ from soc_sentinel.dashboard_services import (
 from soc_sentinel.db import initialize_database
 from soc_sentinel.demo import seed_demo_database
 from soc_sentinel.incidents import IncidentError
+from soc_sentinel.operating_mode import OperatingModeError
 
 
 def seeded(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
@@ -80,6 +84,7 @@ def test_summary_and_incident_filters_use_persisted_data(tmp_path: Path) -> None
     assert summary["open_incidents"] == 2
     assert summary["total_alerts"] == 3
     assert sum(row["count"] for row in summary["alerts_by_severity"]) == 3
+    assert sum(row["count"] for row in summary["alerts_by_rule"]) == 3
     auth = list_dashboard_incidents(path, host="ws-fin-07")
     assert auth["total"] == 1
     assert auth["items"][0]["entities"]["username"] == ["jordan.chen"]
@@ -120,6 +125,28 @@ def test_alert_and_evidence_detail_includes_correlation_provenance(tmp_path: Pat
         ),
     )
     assert {item["timestamp_type"] for item in timeline} >= {"security_event", "application_audit"}
+
+
+def test_alert_filters_preserve_evidence_and_incident_links(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    all_alerts = list_dashboard_alerts(path, limit=1000)
+    assert all_alerts
+    chosen = all_alerts[0]
+    filtered = list_dashboard_alerts(
+        path,
+        rule_ids={chosen["rule_id"]},
+        incident_association="linked",
+    )
+    assert filtered
+    assert all(item["rule_id"] == chosen["rule_id"] for item in filtered)
+    assert all(item["incident_id"] for item in filtered)
+    for item in filtered:
+        details = get_incident_details(path, item["incident_id"])
+        assert set(item["evidence_event_ids"]).issubset(
+            set(details["evidence_events"]) | set(details["missing_event_ids"])
+        )
+    with pytest.raises(DashboardServiceError, match="Incident association"):
+        list_dashboard_alerts(path, incident_association="anything")
 
 
 def test_missing_source_event_is_reported_not_fabricated(tmp_path: Path) -> None:
@@ -227,6 +254,7 @@ def test_dashboard_app_starts_without_creating_a_database(
 
     missing_database = tmp_path / "not-created.sqlite3"
     monkeypatch.setenv("SOC_SENTINEL_DB", str(missing_database))
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
     app_path = Path(__file__).parents[1] / "src" / "soc_sentinel" / "dashboard.py"
     app = AppTest.from_file(str(app_path), default_timeout=15).run()
     assert not app.exception
@@ -239,12 +267,21 @@ def test_dashboard_evaluation_page_uses_canonical_evaluator_without_database(
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
 
+    original_mode = os.environ.get("SOC_SENTINEL_MODE")
     monkeypatch.setenv("SOC_SENTINEL_DB", str(tmp_path / "missing.sqlite3"))
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
     app_path = Path(__file__).parents[1] / "src" / "soc_sentinel" / "dashboard.py"
-    app = AppTest.from_file(str(app_path), default_timeout=20).run()
+    try:
+        app = AppTest.from_file(str(app_path), default_timeout=20).run()
+    finally:
+        if original_mode is None:
+            os.environ.pop("SOC_SENTINEL_MODE", None)
+        else:
+            os.environ["SOC_SENTINEL_MODE"] = original_mode
     app.radio[0].set_value("Detection evaluation").run()
     assert not app.exception
     assert any("Detection evaluation" in item.value for item in app.title)
+    assert any("PUBLIC · READ ONLY" in item.value for item in app.markdown)
     assert any("Synthetic benchmark only" in item.value for item in app.warning)
     metrics = {item.label: item.value for item in app.metric}
     assert metrics["Precision"] == "0.909"
@@ -256,3 +293,77 @@ def test_dashboard_evaluation_page_uses_canonical_evaluator_without_database(
     assert any(
         "Missed expected detections / false negatives" in item.label for item in app.expander
     )
+
+
+def test_public_demo_mode_rejects_all_dashboard_service_mutations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path, seeded_result = seeded(tmp_path)
+    incident_id = seeded_result["incidents"][0]["incident_id"]
+    with sqlite3.connect(path) as connection:
+        before = {
+            table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("events", "alerts", "incidents", "incident_notes", "incident_audit")
+        }
+        incident_before = connection.execute(
+            "SELECT status, assigned_analyst, version FROM incidents WHERE incident_id=?",
+            (incident_id,),
+        ).fetchone()
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
+    attempted: list[Callable[[], object]] = [
+        lambda: change_incident_status(path, incident_id, "in_progress", 1),
+        lambda: assign_incident_to_analyst(path, incident_id, "attacker", 1),
+        lambda: add_investigation_note(path, incident_id, "unauthorized note", expected_version=1),
+        lambda: resolve_incident(path, incident_id, "inconclusive", "unauthorized", 1),
+        lambda: reopen_incident(path, incident_id, 1),
+        lambda: run_synthetic_investigation(path),
+        lambda: seed_demo_database(path, reset=True),
+    ]
+    for action in attempted:
+        with pytest.raises(OperatingModeError, match="read-only"):
+            action()
+    with sqlite3.connect(path) as connection:
+        after = {
+            table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("events", "alerts", "incidents", "incident_notes", "incident_audit")
+        }
+        incident_after = connection.execute(
+            "SELECT status, assigned_analyst, version FROM incidents WHERE incident_id=?",
+            (incident_id,),
+        ).fetchone()
+    assert after == before
+    assert incident_after == incident_before
+
+
+def test_public_demo_initialization_is_synthetic_and_never_resets_existing_data(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "soc-sentinel-public-demo.sqlite3"
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
+    first = ensure_public_demo_database(path)
+    assert first["initialized"] is True
+    summary = get_dashboard_summary(path)
+    assert summary["total_incidents"] == 2
+    assert summary["total_alerts"] == 3
+    with sqlite3.connect(path) as connection:
+        before = {
+            table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("events", "alerts", "incidents", "incident_notes", "incident_audit")
+        }
+    second = ensure_public_demo_database(path)
+    assert second["initialized"] is False
+    with sqlite3.connect(path) as connection:
+        after = {
+            table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("events", "alerts", "incidents", "incident_notes", "incident_audit")
+        }
+    assert after == before
+
+
+def test_invalid_operating_mode_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path, seeded_result = seeded(tmp_path)
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-ish")
+    with pytest.raises(OperatingModeError, match="SOC_SENTINEL_MODE"):
+        change_incident_status(path, seeded_result["incidents"][0]["incident_id"], "in_progress", 1)

@@ -12,6 +12,7 @@ UTF-8 JSONL
   -> transactional SQLite alerts / incidents / relationships / audit
   -> incident CLI + framework-independent dashboard services
   -> local Streamlit dashboard, chronological timeline, lifecycle operations
+  -> public entry point (synthetic-only, service-layer read-only guard, disposable SQLite)
 
 Independent evaluation path:
   versioned synthetic ground truth + raw synthetic event records
@@ -33,6 +34,8 @@ Independent evaluation path:
 - dashboard_services.py: framework-independent summary/search/detail/evidence services and allow-listed synthetic pipeline; query-only SQLite access for reads.
 - demo.py: explicit, demo-target-guarded synthetic database seed/reset command.
 - dashboard.py: optional Streamlit UI; it delegates to dashboard_services.py and Phase 4 lifecycle methods.
+- operating_mode.py: fail-safe local-analyst/public-demo configuration and service-layer write guard.
+- streamlit_app.py: public-host entry point that forces synthetic-only read-only mode and a disposable database path.
 - cli.py: existing CLI plus incident and evaluation command integration.
 - evaluation.py: independent benchmark validation, fingerprints, one-to-one evidence matching, metrics, and deterministic reports; it does not access SQLite, correlation, or incident lifecycle.
 

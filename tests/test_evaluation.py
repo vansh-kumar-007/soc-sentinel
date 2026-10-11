@@ -11,6 +11,7 @@ import pytest
 
 from soc_sentinel.cli import main
 from soc_sentinel.evaluation import (
+    PHASE_6_BASELINE,
     EvaluationError,
     calculate_metrics,
     evaluate_dataset,
@@ -396,3 +397,22 @@ def test_duplicate_evidence_in_actual_alert_is_rejected(
     )
     with pytest.raises(EvaluationError, match="duplicate evidence IDs"):
         evaluate_dataset(DATASET, RULES)
+
+
+def test_phase6_baseline_reference_matches_original_artifact_provenance() -> None:
+    baseline = PHASE_6_BASELINE
+    assert baseline["source"]["commit_sha"] == "e4fbbc9783a5224c5215e6616e915891cccf1116"
+    assert baseline["source"]["artifact_name"] == (
+        "detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116"
+    )
+    assert baseline["aggregate"] == {
+        "tp": 10,
+        "fp": 2,
+        "fn": 0,
+        "tn": 46,
+        "precision": 0.833333,
+        "recall": 1.0,
+        "f1": 0.909091,
+    }
+    det003 = next(item for item in baseline["per_rule"] if item["rule_id"] == "DET-003")
+    assert (det003["tp"], det003["fp"], det003["fn"], det003["tn"]) == (3, 1, 0, 15)

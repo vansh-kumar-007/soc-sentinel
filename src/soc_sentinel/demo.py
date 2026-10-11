@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from soc_sentinel.dashboard_services import PROJECT_ROOT, run_synthetic_investigation
+from soc_sentinel.operating_mode import require_analyst_mode
 
 DEFAULT_DEMO_DATABASE = PROJECT_ROOT / "data" / "soc-sentinel-demo.sqlite3"
 PROTECTED_DATABASE = (PROJECT_ROOT / "data" / "soc-sentinel.sqlite3").resolve()
@@ -16,6 +17,7 @@ def seed_demo_database(
     database_path: str | Path = DEFAULT_DEMO_DATABASE, *, reset: bool = False
 ) -> dict[str, Any]:
     """Seed a demo database. Reset requires explicit intent and a demo-named target."""
+    require_analyst_mode()
     path = Path(database_path).expanduser().resolve()
     if path == PROTECTED_DATABASE:
         raise ValueError("Refusing to use the default working database as a demo reset target.")

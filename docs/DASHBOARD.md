@@ -16,13 +16,14 @@ The dashboard dependency is optional. A CLI-only installation remains `python -m
 
 ```bash
 soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3
-SOC_SENTINEL_DB=data/soc-sentinel-demo.sqlite3 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
+SOC_SENTINEL_MODE=local-analyst SOC_SENTINEL_DB=data/soc-sentinel-demo.sqlite3 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 ```
 
 PowerShell:
 
 ```powershell
 soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3
+$env:SOC_SENTINEL_MODE = "local-analyst"
 $env:SOC_SENTINEL_DB = "data/soc-sentinel-demo.sqlite3"
 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 ```
@@ -68,3 +69,19 @@ No credentials, secrets, network APIs, or remote services are required. Do not u
 ## Portfolio screenshot checklist
 
 Capture genuine local screenshots of: overview metrics; filtered incident queue; alert/evidence detail; timeline provenance; correlation explanation; lifecycle/resolution form; and synthetic pipeline results. Only commit screenshots actually captured from the running application.
+
+
+## Phase 8 operating modes and refresh
+
+The dashboard has two operating modes, enforced in the Python service layer:
+
+- **Local analyst:** run the package dashboard directly; lifecycle transitions, assignments, notes, the allow-listed synthetic pipeline, and the existing SQLite workflow remain available.
+- **Public demo:** deploy the repository-root `streamlit_app.py` entry point. It forces public-demo mode, uses a disposable `/tmp` SQLite database, seeds only the checked-in synthetic SOC walkthrough when the file is absent, and rejects dashboard-service writes. Existing database files are never reset or overwritten during initialization. The public lab displays persisted fixture results but cannot run write-producing workflows.
+
+The public entry point ignores any analyst database path and never reads the local working database. Its SQLite file is process-scoped under the temporary directory, contains only the bundled synthetic fixture, and is disposable on restart. Invalid mode values stop the dashboard safely. The operations overview derives alert severity/rule counts and recent activity from SQLite. The alert explorer filters by text, severity, rule, host, username, observation dates, and incident association while preserving evidence links. The evaluation page recalculates the current report and compares aggregate and per-rule metrics with the verified Phase 6 artifact. Refresh current data using the sidebar button; each render queries current application state. This is not external telemetry ingestion. The last-render timestamp is a UI refresh indicator, not a telemetry timestamp.
+
+### Public hosting
+
+The repository is prepared for Streamlit Community Cloud using the root `streamlit_app.py` entry point. To publish, select this repository and branch in the [Streamlit Community Cloud deployment page](https://share.streamlit.io/). The hosting account action is still required; no public URL is claimed until a deployment is opened and verified. Streamlit Community Cloud apps can hibernate after 12 hours without traffic, and the temporary synthetic database is disposable; there is no persistent-storage or continuous-uptime guarantee. See the [Community Cloud app management documentation](https://docs.streamlit.io/deploy/streamlit-community-cloud/manage-your-app). Do not use the public instance for real logs or analyst casework.
+
+Phase 6 baseline provenance is recorded in [CI run #252](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404), which uploaded the original `detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116` report artifact. Current metrics are recalculated by `evaluate_dataset` from the canonical benchmark and current rules, not from dashboard constants.
