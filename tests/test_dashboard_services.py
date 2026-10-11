@@ -266,6 +266,7 @@ def test_dashboard_evaluation_page_uses_canonical_evaluator_without_database(
     from streamlit.testing.v1 import AppTest
 
     monkeypatch.setenv("SOC_SENTINEL_DB", str(tmp_path / "missing.sqlite3"))
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
     app_path = Path(__file__).parents[1] / "src" / "soc_sentinel" / "dashboard.py"
     app = AppTest.from_file(str(app_path), default_timeout=20).run()
     app.radio[0].set_value("Detection evaluation").run()
