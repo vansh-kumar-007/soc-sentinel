@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any
@@ -255,6 +256,12 @@ def _matches_condition(event: SecurityEvent, condition: Condition) -> bool:
             isinstance(actual, str)
             and isinstance(expected, str)
             and expected.casefold() in actual.casefold()
+        )
+    if operator == "icontains_token":
+        return (
+            isinstance(actual, str)
+            and isinstance(expected, str)
+            and re.search(rf"(?<![\\w-]){re.escape(expected)}(?![\\w-])", actual, flags=re.IGNORECASE) is not None
         )
     if operator == "starts_with":
         return isinstance(actual, str) and isinstance(expected, str) and actual.startswith(expected)

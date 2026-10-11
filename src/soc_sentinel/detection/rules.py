@@ -54,7 +54,7 @@ PROCESS_FIELDS = {
     "process.hash_sha256",
 }
 GROUP_FIELDS = {"host_id", "username", "source_ip", "destination_ip", "process.name"}
-STRING_OPERATORS = {"contains", "icontains", "starts_with", "ends_with"}
+STRING_OPERATORS = {"contains", "icontains", "icontains_token", "starts_with", "ends_with"}
 NUMERIC_OPERATORS = {"gt", "gte", "lt", "lte"}
 ALLOWED_OPERATORS = {"eq", "ne", "in", "not_in", *STRING_OPERATORS, *NUMERIC_OPERATORS}
 EVENT_TYPES_BY_FIELD: dict[str, set[EventType]] = {

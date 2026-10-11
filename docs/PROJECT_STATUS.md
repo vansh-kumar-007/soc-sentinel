@@ -4,7 +4,7 @@ Last updated: 2026-10-11
 
 ## Current milestone
 
-**Phase 6 — Reproducible Detection Evaluation: Complete and Verified.** The implementation baseline was independently verified by exact-head push run [#252](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404) for `main` SHA `e4fbbc9783a5224c5215e6616e915891cccf1116`: all three Python jobs passed 120 tests each, Ruff lint and formatting, and mypy. The Python 3.11 job also passed shipped-rule validation, ran the evaluation CLI against the committed benchmark, and uploaded the JSON/Markdown reports. The final delivery report records the exact final documentation commit and its own CI result separately.
+**Phase 6 — Reproducible Detection Evaluation: Complete and Verified.** The code/test matrix passed in [run #250](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148398688), and exact-head push run [#251](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148691555) passed for `main` SHA `8457cca814a7047b4aebcc6cd69e6db9050fa9b3`: 120 tests per Python version, Ruff lint/format, mypy, rule validation, evaluation CLI/report generation, and report artifact upload. The final delivery report identifies the separately verified current-head run for its own SHA.
 
 Phase 5 remains implemented and verified; see the previous verification record below. The implementation passed [GitHub Actions run #199](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38054736275) on Python 3.11, 3.12, and 3.13: 96 tests per version, Ruff lint, Ruff formatting, and mypy.
 
@@ -95,8 +95,8 @@ The final documentation set passed the same CI workflow; this status-only update
 - [x] Added a dashboard evaluation page that consumes the evaluator's canonical report object rather than implementing separate metrics.
 - [x] Added evaluator validation, matching, metric, determinism, report, and CLI tests.
 - [x] Updated README, architecture, and evaluation methodology.
-- [x] Complete test suite, Ruff lint, Ruff formatting, and mypy on Python 3.11, 3.12, and 3.13 (120 tests each; also verified on implementation-baseline run #252).
-- [x] `validate-rules` CLI smoke test and real evaluation CLI/report/artifact steps passed on Python 3.11 in runs #251 and #252.
+- [x] Complete test suite, Ruff lint, Ruff formatting, and mypy on Python 3.11, 3.12, and 3.13 (120 tests each; verified on exact-head run #251).
+- [x] `validate-rules` CLI smoke test and real evaluation CLI/report/artifact steps passed on Python 3.11 in exact-head run #251.
 - [x] Repository hygiene audit: only `main` exists; generated reports/DBs/secrets are not tracked in the repository tree.
 
 Verification history:
@@ -109,7 +109,6 @@ Verification history:
 - [Run #249](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148239361) passed 120 tests, Ruff lint, Ruff formatting, and mypy on all three Python versions. Python 3.11 ran the evaluation CLI and uploaded generated JSON/Markdown reports.
 - [Run #250](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148398688) passed the full matrix on code/test SHA `f072a7074282b55c4efb27f23f4fdf437d886a14`: 120 passed per Python version; Ruff lint, Ruff formatting, and mypy passed on each. Its Python 3.11 job also validated all 3 shipped rules, ran the evaluator (TP 10, FP 2, FN 0, supplemental TN 46; precision 0.833333, recall 1.0, F1 0.909091), and uploaded report artifact `detection-evaluation-f072a7074282b55c4efb27f23f4fdf437d886a14`.
 - [Run #251](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148691555) passed on exact-head SHA `8457cca814a7047b4aebcc6cd69e6db9050fa9b3`: all three jobs completed successfully with 120 tests each, Ruff lint/format and mypy passed on every Python version, and Python 3.11 passed rule validation plus actual evaluation/report artifact steps. The artifact contains `evaluation.json` and `evaluation.md`.
-- [Run #252](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404) then passed on exact-head SHA `e4fbbc9783a5224c5215e6616e915891cccf1116`: all three matrix jobs succeeded with 120 tests each, Ruff lint/format and mypy passed, rule validation and report generation completed, and artifact `detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116` contains the measured JSON and Markdown reports.
 
 Verification hygiene: a passing Actions run is evidence only for its exact commit SHA. The final delivery report identifies both the delivered SHA and its corresponding successful run.
 - [x] Publish measured benchmark outcomes, per-rule metrics, and each known false-positive evidence set.
