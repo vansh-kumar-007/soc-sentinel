@@ -254,6 +254,7 @@ def test_dashboard_app_starts_without_creating_a_database(
 
     missing_database = tmp_path / "not-created.sqlite3"
     monkeypatch.setenv("SOC_SENTINEL_DB", str(missing_database))
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "public-demo")
     app_path = Path(__file__).parents[1] / "src" / "soc_sentinel" / "dashboard.py"
     app = AppTest.from_file(str(app_path), default_timeout=15).run()
     assert not app.exception
