@@ -1,6 +1,6 @@
 # Detection Evaluation
 
-Status: **Phase 6 implementation in progress; benchmark labels and evaluator are committed, final CI verification pending.**
+Status: **Benchmark measurements reproduced by tests; final quality-matrix verification pending.**
 
 ## Reproduce the evaluation
 
@@ -42,9 +42,29 @@ True negatives (TN) are reported as a supplemental count of negative scenario-ru
 - **TN (supplemental):** scenario-rule pair with no expected detection and no actual alert.
 - **Precision:** TP / (TP + FP); `null` when its denominator is zero.
 - **Recall:** TP / (TP + FN); `null` when its denominator is zero.
-- **F1:** 2 × precision × recall / (precision + recall); `null` when undefined.
+- **F1:** 2 × TP / (2 × TP + FP + FN); `null` when its denominator is zero.
 
 Reports contain scenario-level outcomes, per-rule and aggregate metrics, unexpected detections, missed expectations, evidence IDs, rule/dataset SHA-256 fingerprints, and a deterministic Markdown rendering. Wall-clock timestamps are omitted so identical inputs produce byte-stable substantive reports.
+
+## Measured benchmark result
+
+The committed synthetic benchmark measures:
+
+| Rule | TP | FP | FN | TN* | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| DET-001 | 5 | 1 | 0 | 14 | 0.833333 | 1.000000 | 0.909091 |
+| DET-002 | 2 | 0 | 0 | 17 | 1.000000 | 1.000000 | 1.000000 |
+| DET-003 | 3 | 1 | 0 | 15 | 0.750000 | 1.000000 | 0.857143 |
+| **Aggregate** | **10** | **2** | **0** | **46** | **0.833333** | **1.000000** | **0.909091** |
+
+*TN is supplemental: it counts a negative scenario-rule opportunity with no alert and is not included in precision, recall, or F1. TP/FN count expected detection instances and FP counts unmatched alert instances, so TN is not a conventional balanced confusion-matrix count.
+
+### False-positive details
+
+- **`auth-benign-mistyped-passwords` / DET-001:** evidence `mistype-1`, `mistype-2`, `mistype-3`, `mistype-4`, `mistype-5`; all five failed logins belong to fictional account `pat.taylor` and source `192.0.2.45`. The benign typo ground truth is intentional and independent. The count-and-window detector cannot distinguish these failures from malicious activity based on available fields.
+- **`process-encoded-substring-lookalike` / DET-003:** evidence `substring-lookalike`, command line `powershell.exe -EncodedCommandlet status`. The detector uses substring matching for `-EncodedCommand`, so it matches the lookalike instead of requiring the actual switch token.
+
+There were no false negatives on this constructed benchmark. These values are a regression baseline for the selected synthetic scenarios, not an estimate of real-world SOC precision or recall. Production-rule changes remain separate from evaluation fixes.
 
 ## Interpreting results and tuning candidates
 

@@ -253,4 +253,6 @@ def test_dashboard_evaluation_page_uses_canonical_evaluator_without_database(
     assert metrics["False positives"] == "2"
     assert metrics["False negatives"] == "0"
     assert any("Unexpected alerts / false positives" in item.label for item in app.expander)
-    assert any("Missed expected detections / false negatives" in item.label for item in app.expander)
+    assert any(
+        "Missed expected detections / false negatives" in item.label for item in app.expander
+    )

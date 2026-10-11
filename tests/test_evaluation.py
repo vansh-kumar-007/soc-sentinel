@@ -117,7 +117,8 @@ def test_duplicate_event_ids_are_rejected_and_replay_has_explicit_semantics(
         evaluate_dataset(write_benchmark(tmp_path, data), RULES)
     report = evaluate_dataset(DATASET, RULES)
     replayed = next(
-        item for item in report["scenario_results"]
+        item
+        for item in report["scenario_results"]
         if item["scenario_id"] == "cross-rule-out-of-order-and-replay"
     )
     assert replayed["outcome"] == "pass"
@@ -151,9 +152,7 @@ def test_duplicate_evidence_constraints_are_rejected(tmp_path: Path) -> None:
     data = read_benchmark()
     evidence = data["scenarios"][0]["expected_detections"][0]["evidence_event_ids"]
     evidence.append(evidence[0])
-    with pytest.raises(
-        EvaluationError, match="evidence_event_ids must not contain duplicates"
-    ):
+    with pytest.raises(EvaluationError, match="evidence_event_ids must not contain duplicates"):
         evaluate_dataset(write_benchmark(tmp_path, data), RULES)
 
 
@@ -181,7 +180,8 @@ def test_one_alert_cannot_satisfy_two_expectations(tmp_path: Path) -> None:
 def test_duplicate_replay_ids_are_rejected(tmp_path: Path) -> None:
     data = read_benchmark()
     scenario = next(
-        item for item in data["scenarios"]
+        item
+        for item in data["scenarios"]
         if item["scenario_id"] == "cross-rule-out-of-order-and-replay"
     )
     scenario["replay_event_ids"].append(scenario["replay_event_ids"][0])
@@ -334,7 +334,11 @@ def test_per_rule_metrics_identify_specific_false_positive_sources() -> None:
     }
     assert false_positive_evidence == {
         ("auth-benign-mistyped-passwords", "DET-001"): [
-            "mistype-1", "mistype-2", "mistype-3", "mistype-4", "mistype-5"
+            "mistype-1",
+            "mistype-2",
+            "mistype-3",
+            "mistype-4",
+            "mistype-5",
         ],
         ("process-encoded-substring-lookalike", "DET-003"): ["substring-lookalike"],
     }

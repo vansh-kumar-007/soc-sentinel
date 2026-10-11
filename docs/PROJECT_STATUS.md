@@ -1,10 +1,10 @@
 # Project Status
 
-Last updated: 2026-10-10
+Last updated: 2026-10-11
 
 ## Current milestone
 
-**Phase 6 — Reproducible Detection Evaluation: implementation in progress; final CI verification pending.**
+**Phase 6 — Reproducible Detection Evaluation: implementation and defect corrections committed; final CI verification pending.**
 
 Phase 5 remains implemented and verified; see the previous verification record below. The implementation passed [GitHub Actions run #199](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38054736275) on Python 3.11, 3.12, and 3.13: 96 tests per version, Ruff lint, Ruff formatting, and mypy.
 
@@ -51,7 +51,7 @@ Starting Phase 4 commit: f9c1042ed6912eb9c92441d49729bdf0c18781f8
 - The end-to-end command commits event ingestion first, then commits alert and incident state in a separate transaction. An incident transaction failure can leave successfully ingested events behind; incident/alert/link/explanation/audit changes are atomic with each other.
 - The CLI is a local single-user tool, not an authenticated multi-user service.
 - Timeline records only evidence references when source event details are unavailable; it does not fabricate telemetry.
-- Phase 5 dashboard is now implemented; see dashboard docs. Phase 6 labeled evaluation has not started.
+- Phase 5 dashboard is implemented; see dashboard docs. Phase 6 evaluation is implemented; see evaluation docs.
 
 ## Verification record
 
@@ -98,12 +98,18 @@ The final documentation set passed the same CI workflow; this status-only update
 - [ ] Final full test suite, Ruff lint/format, and mypy verification on Python 3.11, 3.12, and 3.13.
 - [ ] Final-head GitHub Actions verification and final repository hygiene audit.
 
-Verification note: the connected GitHub integration did not expose push-triggered workflow-run metadata for the Phase 6 commits, and the combined commit-status query returned no status entries. The final-head CI result is therefore still unverified here; do not mark Phase 6 verified until the run for the current main SHA is confirmed in [GitHub Actions](https://github.com/vansh-kumar-007/soc-sentinel/actions/workflows/ci.yml).
-- [ ] Publish measured benchmark outcomes and update this checklist after CI results are confirmed.
+Verification history:
+- [GitHub Actions run #243](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38056708280) executed pytest on Python 3.11, 3.12, and 3.13 and found the F1-rounding regression: 117 passed, 1 failed per version. Other gates were skipped.
+- [Run #244](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38147274126) failed before creating jobs because the new workflow conditions used invalid double-quoted string literals; the conditions are now single-quoted.
+- [Run #245](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38147435240) surfaced a missing colon in a test definition. Follow-up source inspection found a second missing colon; both are corrected on main.
+- [Run #247](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38147814980) passed pytest (120 tests) and Ruff lint on all three Python versions, then failed Ruff formatting on three files. This commit applies the formatter changes reported by that run. Type checking and report generation did not run because the format gate stopped the jobs.
+
+Phase 6 must remain pending until a new run for the current main SHA passes pytest, Ruff lint, Ruff format, mypy, CLI benchmark/report generation, and report artifact upload on the Python 3.11–3.13 matrix.
+- [x] Publish measured benchmark outcomes, per-rule metrics, and each known false-positive evidence set.
 
 ### Phase 6 findings to review
 
-The benchmark deliberately labels a five-failure mistyped-password scenario as benign and includes a command-line substring lookalike for DET-003. Any alert on these scenarios is recorded as a false positive, not used to rewrite ground truth. A token-boundary improvement to DET-003 is a separately justified future rule change and is not silently bundled into the evaluation implementation.
+The measured false positives are DET-001 on evidence `mistype-1`–`mistype-5` and DET-003 on `substring-lookalike`. Neither ground-truth label was changed after observing detector output. A token-boundary improvement to DET-003 remains a separately reviewed future rule change.
 
 ## Next milestone
 

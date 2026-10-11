@@ -219,9 +219,7 @@ def _validate_scenarios(
                 )
         for expected in scenario.expected_detections:
             if expected.expectation_id in seen_expectations:
-                raise EvaluationError(
-                    f"duplicate expectation_id: {expected.expectation_id}"
-                )
+                raise EvaluationError(f"duplicate expectation_id: {expected.expectation_id}")
             seen_expectations.add(expected.expectation_id)
             rule = rule_by_id.get(expected.rule_id)
             if rule is None:
@@ -307,9 +305,7 @@ def evaluate_dataset(
         raise EvaluationError("no enabled detection rules are available for evaluation")
 
     totals: Counter[str] = Counter()
-    rule_counts: dict[str, Counter[str]] = {
-        rule.rule_id: Counter() for rule in enabled_rules
-    }
+    rule_counts: dict[str, Counter[str]] = {rule.rule_id: Counter() for rule in enabled_rules}
     scenario_results: list[dict[str, Any]] = []
     all_false_positives: list[dict[str, Any]] = []
     all_false_negatives: list[dict[str, Any]] = []
@@ -447,8 +443,7 @@ def evaluate_dataset(
                 "true_negative_rule_opportunities": sum(
                     1
                     for rule in enabled_rules
-                    if rule.rule_id not in expected_rule_ids
-                    and rule.rule_id not in actual_rule_ids
+                    if rule.rule_id not in expected_rule_ids and rule.rule_id not in actual_rule_ids
                 ),
                 "outcome": outcome,
                 "rationale": scenario.rationale,
@@ -509,7 +504,9 @@ def evaluate_dataset(
         "summary": {
             "scenario_count": len(scenario_results),
             "passing_scenarios": sum(item["outcome"] == "pass" for item in scenario_results),
-            "scenarios_with_misses": sum(item["outcome"] in {"missed", "mixed"} for item in scenario_results),
+            "scenarios_with_misses": sum(
+                item["outcome"] in {"missed", "mixed"} for item in scenario_results
+            ),
             "scenarios_with_unexpected_alerts": sum(
                 item["outcome"] in {"unexpected", "mixed"} for item in scenario_results
             ),
