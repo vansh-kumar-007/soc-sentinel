@@ -457,7 +457,9 @@ def workspace(db: Path, incident_id: str) -> None:
                     elif target == "open" and inc["status"] == "resolved":
                         updated = reopen_incident(db, inc["incident_id"], inc["version"])
                     else:
-                        updated = change_incident_status(db, inc["incident_id"], target, inc["version"])
+                        updated = change_incident_status(
+                            db, inc["incident_id"], target, inc["version"]
+                        )
                     st.success(f"Status saved: {updated.status.value} · version {updated.version}")
                     st.rerun()
                 except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
@@ -466,7 +468,8 @@ def workspace(db: Path, incident_id: str) -> None:
             st.divider()
             with st.form("assignment_form"):
                 analyst = st.text_input(
-                    "Assigned analyst (blank means unassign)", value=inc.get("assigned_analyst") or ""
+                    "Assigned analyst (blank means unassign)",
+                    value=inc.get("assigned_analyst") or "",
                 )
                 assign = st.form_submit_button("Save assignment")
             if assign:
@@ -559,15 +562,15 @@ def alerts_page(db: Path) -> None:
     available_rules = sorted({item["rule_id"] for item in all_alerts})
     first, second, third, fourth = st.columns([2, 1, 1, 1])
     with first:
-        query = st.text_input("Search alerts", placeholder="Alert ID, rule, entity, timestamp, or rationale")
+        query = st.text_input(
+            "Search alerts", placeholder="Alert ID, rule, entity, timestamp, or rationale"
+        )
     with second:
         severities = st.multiselect("Severity", SEVERITIES)
     with third:
         rule_id = st.selectbox("Detection rule", ["All rules", *available_rules])
     with fourth:
-        association = st.selectbox(
-            "Incident link", ["All alerts", "Linked", "Unassigned"]
-        )
+        association = st.selectbox("Incident link", ["All alerts", "Linked", "Unassigned"])
     host_col, user_col = st.columns(2)
     with host_col:
         host = st.text_input("Host contains", placeholder="Host identifier")
@@ -652,7 +655,9 @@ def synthetic_lab(db: Path) -> None:
         "Only bundled synthetic fixtures and shipped rules are used. No simulated command is executed."
     )
     if operating_mode() == PUBLIC_DEMO:
-        st.info("Read-only public demo: this page shows persisted synthetic fixture results. Running the pipeline is enabled only in local analyst mode.")
+        st.info(
+            "Read-only public demo: this page shows persisted synthetic fixture results. Running the pipeline is enabled only in local analyst mode."
+        )
         summary = get_dashboard_summary(db)
         cols = st.columns(3)
         cols[0].metric("Persisted synthetic incidents", summary["total_incidents"])
@@ -796,9 +801,7 @@ def evaluation_page() -> None:
         + baseline_source["commit_sha"]
         + ". Current values are recomputed by the canonical evaluator."
     )
-    st.markdown(
-        "[Open the original evaluation artifact](" + baseline_source["artifact_url"] + ")"
-    )
+    st.markdown("[Open the original evaluation artifact](" + baseline_source["artifact_url"] + ")")
     baseline_aggregate = PHASE_6_BASELINE["aggregate"]
     current = {
         "TP": aggregate["tp"],
@@ -836,9 +839,7 @@ def evaluation_page() -> None:
             }
         )
     st.dataframe(comparison_rows, hide_index=True, use_container_width=True)
-    baseline_by_rule = {
-        item["rule_id"]: item for item in PHASE_6_BASELINE["per_rule"]
-    }
+    baseline_by_rule = {item["rule_id"]: item for item in PHASE_6_BASELINE["per_rule"]}
     rule_comparison = []
     for item in report["per_rule"]:
         prior = baseline_by_rule.get(item["rule_id"])
@@ -924,9 +925,7 @@ def main() -> None:
                 "The application did not reset the existing database."
             )
             return
-    st.session_state["last_rendered_at"] = datetime.now(UTC).strftime(
-        "%Y-%m-%d %H:%M:%S UTC"
-    )
+    st.session_state["last_rendered_at"] = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
     with st.sidebar:
         st.markdown("## 🛡️ SOC Sentinel")
         st.caption("SECURITY OPERATIONS WORKSTATION")
@@ -957,8 +956,8 @@ def main() -> None:
     if is_public:
         st.markdown(
             '<div class="ss-panel"><span class="ss-kicker">DEMO ENVIRONMENT</span>'
-            '<p>Read-only synthetic data. This dashboard refreshes application state; it does not '
-            'receive telemetry from external systems.</p></div>',
+            "<p>Read-only synthetic data. This dashboard refreshes application state; it does not "
+            "receive telemetry from external systems.</p></div>",
             unsafe_allow_html=True,
         )
     if nav == "Detection evaluation":

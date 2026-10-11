@@ -348,7 +348,9 @@ def test_public_demo_initialization_is_synthetic_and_never_resets_existing_data(
     assert after == before
 
 
-def test_invalid_operating_mode_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_invalid_operating_mode_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     path, seeded_result = seeded(tmp_path)
     monkeypatch.setenv("SOC_SENTINEL_MODE", "public-ish")
     with pytest.raises(OperatingModeError, match="SOC_SENTINEL_MODE"):
