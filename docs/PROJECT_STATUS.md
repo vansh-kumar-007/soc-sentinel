@@ -23,7 +23,7 @@ Starting Phase 4 commit: f9c1042ed6912eb9c92441d49729bdf0c18781f8
 - [x] Verify positive/negative switch cases and per-rule/aggregate metrics on Python 3.11–3.13 in [CI run #261](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38157188277).
 - [ ] Re-run all checks on the final documentation and benchmark-narrative head before marking complete.
 
-The DET-003 change removes the measured `-EncodedCommandlet` false positive without changing its negative ground-truth label; the production CLI measured aggregate precision 0.909091 and F1 0.952381 with no false negatives. DET-001 remains unchanged: five failed logins alone cannot establish whether activity is malicious. Phase 7 remains in progress until the documentation and benchmark narrative pass CI on the final feature head [`651841cd3e6e1db56ef9fb43b91019d05ee45f3c`](https://github.com/vansh-kumar-007/soc-sentinel/commit/651841cd3e6e1db56ef9fb43b91019d05ee45f3c).
+The DET-003 change removes the measured `-EncodedCommandlet` false positive without changing its negative ground-truth label; the production CLI measured aggregate precision 0.909091 and F1 0.952381 with no false negatives. DET-001 remains unchanged: five failed logins alone cannot establish whether activity is malicious. Phase 7 remains in progress until the documentation and benchmark narrative pass CI on the current feature head; see PR #1 for the exact head SHA.
 
 
 ### Phase 1 — Foundation
