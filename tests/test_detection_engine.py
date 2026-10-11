@@ -161,7 +161,6 @@ def test_process_encoded_command_triggers_but_benign_lookalikes_do_not() -> None
     assert alerts[0].evidence_event_ids == ["encoded"]
 
 
-
 def test_encoded_command_switch_requires_token_boundaries() -> None:
     suspicious = [
         "powershell.exe -EncodedCommand SQBFAFgA",
@@ -187,8 +186,7 @@ def test_encoded_command_rejects_prefix_suffix_and_longer_flags() -> None:
         "powershell.exe -Command Get-Content file.txt -Encoding UTF8",
     ]
     events = [
-        process_event(f"lookalike-{i}", command_line=line)
-        for i, line in enumerate(lookalikes)
+        process_event(f"lookalike-{i}", command_line=line) for i, line in enumerate(lookalikes)
     ]
     assert alerts_for("DET-003", events) == []
 
