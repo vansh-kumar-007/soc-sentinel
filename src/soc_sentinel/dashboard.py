@@ -8,6 +8,7 @@ from __future__ import annotations
 import importlib
 import os
 import sqlite3
+import tempfile
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -162,6 +163,11 @@ def overview(db: Path) -> None:
             )
         else:
             empty("No alerts yet", "Run the synthetic walkthrough to populate the severity chart.")
+        st.subheader("Detection rule breakdown")
+        if summary["alerts_by_rule"]:
+            st.dataframe(summary["alerts_by_rule"], hide_index=True, use_container_width=True)
+        else:
+            empty("No rule activity", "Rule counts appear when detections are persisted.")
         st.subheader("Frequently involved entities")
         hosts, users = st.columns(2)
         with hosts:
@@ -185,6 +191,25 @@ def overview(db: Path) -> None:
             empty(
                 "No activity recorded", "Creation activity appears after incidents are persisted."
             )
+        st.subheader("Recent detection activity")
+        recent_alerts = list_dashboard_alerts(db, limit=8)
+        if recent_alerts:
+            st.dataframe(
+                [
+                    {
+                        "Observed (UTC)": item["first_observed"],
+                        "Rule": item["rule_id"],
+                        "Severity": severity_label(item["severity"]),
+                        "Evidence events": item["event_count"],
+                        "Incident": item.get("incident_reference") or "Unassigned",
+                    }
+                    for item in recent_alerts
+                ],
+                hide_index=True,
+                use_container_width=True,
+            )
+        else:
+            empty("No recent detections", "New alert activity appears after a pipeline run.")
         st.subheader("Recently updated")
         if summary["recent_incidents"]:
             incident_table(summary["recent_incidents"])
@@ -783,9 +808,11 @@ def main() -> None:
         )
         return
     is_public = mode == PUBLIC_DEMO
+    database_path = DB_PATH
     if is_public:
+        database_path = Path(tempfile.gettempdir()) / "soc-sentinel-public-demo.sqlite3"
         try:
-            ensure_public_demo_database(DB_PATH)
+            ensure_public_demo_database(database_path)
         except (DashboardServiceError, sqlite3.Error, OSError, ValueError):
             st.error(
                 "The synthetic demonstration data could not be initialized safely. "
@@ -832,7 +859,7 @@ def main() -> None:
     if nav == "Detection evaluation":
         evaluation_page()
         return
-    if not DB_PATH.is_file():
+    if not database_path.is_file():
         header("SOC Sentinel", "Evidence-led investigation on your local machine.")
         st.info("The configured database does not exist yet. Run this from the repository root:")
         st.code("soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3", language="bash")
@@ -842,13 +869,13 @@ def main() -> None:
         return
     try:
         if nav == "Operations overview":
-            overview(DB_PATH)
+            overview(database_path)
         elif nav == "Incident explorer":
-            incident_explorer(DB_PATH)
+            incident_explorer(database_path)
         elif nav == "Alerts & evidence":
-            alerts_page(DB_PATH)
+            alerts_page(database_path)
         elif nav == "Synthetic lab":
-            synthetic_lab(DB_PATH)
+            synthetic_lab(database_path)
     except (
         DashboardServiceError,
         IncidentError,

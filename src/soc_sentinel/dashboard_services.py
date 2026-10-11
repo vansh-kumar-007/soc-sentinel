@@ -146,6 +146,7 @@ def get_dashboard_summary(database_path: str | Path) -> dict[str, Any]:
             "closed_incidents": "Resolved incidents moved to the terminal closed state.",
             "total_alerts": "Unique persisted alert records, independent of incident count.",
             "activity": "Incidents grouped by application creation date in UTC.",
+            "alerts_by_rule": "Persisted alert counts grouped by the rule ID in each alert payload.",
             "top_hosts": "Number of incident records that list each host entity.",
             "top_users": "Number of incident records that list each username entity.",
         },

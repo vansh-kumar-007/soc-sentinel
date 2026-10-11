@@ -16,13 +16,14 @@ The dashboard dependency is optional. A CLI-only installation remains `python -m
 
 ```bash
 soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3
-SOC_SENTINEL_DB=data/soc-sentinel-demo.sqlite3 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
+SOC_SENTINEL_MODE=local-analyst SOC_SENTINEL_DB=data/soc-sentinel-demo.sqlite3 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 ```
 
 PowerShell:
 
 ```powershell
 soc-sentinel demo-seed --db data/soc-sentinel-demo.sqlite3
+$env:SOC_SENTINEL_MODE = "local-analyst"
 $env:SOC_SENTINEL_DB = "data/soc-sentinel-demo.sqlite3"
 streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 ```

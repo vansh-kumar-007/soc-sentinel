@@ -15,10 +15,10 @@ import pytest
 from soc_sentinel.dashboard_services import (
     DashboardServiceError,
     OperatingModeError,
-    ensure_public_demo_database,
     add_investigation_note,
     assign_incident_to_analyst,
     change_incident_status,
+    ensure_public_demo_database,
     get_dashboard_summary,
     get_incident_details,
     list_dashboard_alerts,
@@ -82,6 +82,7 @@ def test_summary_and_incident_filters_use_persisted_data(tmp_path: Path) -> None
     assert summary["open_incidents"] == 2
     assert summary["total_alerts"] == 3
     assert sum(row["count"] for row in summary["alerts_by_severity"]) == 3
+    assert sum(row["count"] for row in summary["alerts_by_rule"]) == 3
     auth = list_dashboard_incidents(path, host="ws-fin-07")
     assert auth["total"] == 1
     assert auth["items"][0]["entities"]["username"] == ["jordan.chen"]
