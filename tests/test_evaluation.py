@@ -189,7 +189,7 @@ def test_duplicate_replay_ids_are_rejected(tmp_path: Path) -> None:
         evaluate_dataset(write_benchmark(tmp_path, data), RULES)
 
 
-def test_malformed_json_and_duplicate_object_keys_are_rejected(tmp_path: Path) -> None
+def test_malformed_json_and_duplicate_object_keys_are_rejected(tmp_path: Path) -> None:
     malformed = tmp_path / "broken.json"
     malformed.write_text("{not-json", encoding="utf-8")
     with pytest.raises(EvaluationError, match="invalid UTF-8 JSON"):
