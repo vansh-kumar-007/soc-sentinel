@@ -305,6 +305,7 @@ def test_public_demo_mode_rejects_all_dashboard_service_mutations(
         lambda: resolve_incident(path, incident_id, "inconclusive", "unauthorized", 1),
         lambda: reopen_incident(path, incident_id, 1),
         lambda: run_synthetic_investigation(path),
+        lambda: seed_demo_database(path, reset=True),
     ]
     for action in attempted:
         with pytest.raises(OperatingModeError, match="read-only"):
