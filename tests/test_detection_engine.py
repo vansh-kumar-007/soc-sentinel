@@ -44,7 +44,7 @@ def process_event(
     event_id: str,
     *,
     name: str = "powershell.exe",
-    command_line: str = "powershell.exe -EncodedCommand SQBFAFgA",
+    command_line: str | None = "powershell.exe -EncodedCommand SQBFAFgA",
 ) -> SecurityEvent:
     return SecurityEvent.model_validate(
         {
@@ -161,14 +161,45 @@ def test_process_encoded_command_triggers_but_benign_lookalikes_do_not() -> None
     assert alerts[0].evidence_event_ids == ["encoded"]
 
 
+def test_encoded_command_switch_requires_token_boundaries() -> None:
+    suspicious = [
+        "powershell.exe -EncodedCommand SQBFAFgA",
+        "-EncodedCommand SQBFAFgA",
+        'POWERSHELL.EXE -encodedcommand "SQBFAFgA"',
+        "powershell.exe '-ENCODEDCOMMAND' SQBFAFgA",
+        "powershell.exe -EncodedCommand; SQBFAFgA",
+    ]
+    for index, line in enumerate(suspicious):
+        alerts = alerts_for("DET-003", [process_event(f"switch-{index}", command_line=line)])
+        assert len(alerts) == 1
+        assert alerts[0].evidence_event_ids == [f"switch-{index}"]
+
+
+def test_encoded_command_rejects_prefix_suffix_and_longer_flags() -> None:
+    lookalikes = [
+        "powershell.exe -EncodedCommandlet status",
+        "powershell.exe -NotEncodedCommand SQBFAFgA",
+        "powershell.exe --EncodedCommand SQBFAFgA",
+        "powershell.exe -EncodedCommands SQBFAFgA",
+        "powershell.exe -EncodedCommand-foo SQBFAFgA",
+        "powershell.exe -EncodedCommand_suffix SQBFAFgA",
+        "powershell.exe -Command Get-Content file.txt -Encoding UTF8",
+    ]
+    events = [
+        process_event(f"lookalike-{i}", command_line=line) for i, line in enumerate(lookalikes)
+    ]
+    assert alerts_for("DET-003", events) == []
+
+
 def test_process_rule_requires_both_process_name_and_command_line_indicator() -> None:
     benign_name = process_event("renamed", name="custom.exe")
     assert alerts_for("DET-003", [benign_name]) == []
 
 
 def test_missing_optional_fields_do_not_match_conditions() -> None:
-    event = process_event("missing-command", command_line="powershell.exe -NoProfile")
-    assert alerts_for("DET-003", [event]) == []
+    missing = process_event("missing-command", command_line=None)
+    unrelated = process_event("unrelated-command", command_line="powershell.exe -NoProfile")
+    assert alerts_for("DET-003", [missing, unrelated]) == []
 
 
 def test_alert_ids_and_order_are_deterministic() -> None:

@@ -76,7 +76,7 @@ soc-sentinel evaluate --dataset data/evaluation/benchmark.json --rules rules/ --
 
 This writes `evaluation.json` and `evaluation.md` under the local report directory. Use `--json` to print the complete report to stdout, or `--fail-on-mismatch` to return exit code 3 if the benchmark identifies false positives or false negatives. Evaluation uses the existing detection engine; ground-truth labels remain outside event records.
 
-The measured synthetic benchmark is TP 10, FP 2, FN 0, and supplemental TN 46; precision 0.833333, recall 1.000000, and F1 0.909091. The two false positives are DET-001 on five benign mistyped-password events and DET-003 on the `-EncodedCommandlet` substring lookalike. This constructed benchmark is a regression signal, not a production SOC performance estimate. See [docs/EVALUATION.md](docs/EVALUATION.md).
+The Phase 6 measured synthetic baseline was TP 10, FP 2, FN 0, and supplemental TN 46; precision 0.833333, recall 1.000000, and F1 0.909091. Phase 7's measured result is TP 10, FP 1, FN 0, and supplemental TN 47; precision 0.909091, recall 1.000000, and F1 0.952381. Token-aware matching removes the `-EncodedCommandlet` false positive while preserving all three expected DET-003 detections. DET-001's five-event benign mistype false positive remains. These synthetic metrics are a regression signal, not a production SOC performance estimate. See [docs/EVALUATION.md](docs/EVALUATION.md) and [Phase 7 CI run #261](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38157188277).
 
 ## Start the dashboard locally
 

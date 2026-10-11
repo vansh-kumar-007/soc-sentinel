@@ -14,6 +14,18 @@ Starting Phase 4 commit: f9c1042ed6912eb9c92441d49729bdf0c18781f8
 
 ## Phase checklist
 
+### Phase 7 — Detection precision and benchmark trustworthiness (in progress)
+
+- [x] Add a safe, declarative case-insensitive token-boundary operator for command-line switch detection.
+- [x] Change DET-003 to require a standalone encoded-command switch.
+- [x] Add positive, negative, casing, quoting, and lookalike regression tests.
+- [x] Reproduce before/after benchmark results from the production evaluation CLI and inspect the JSON report artifact.
+- [x] Verify positive/negative switch cases and per-rule/aggregate metrics on Python 3.11–3.13 in [CI run #261](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38157188277).
+- [ ] Re-run all checks on the final documentation and benchmark-narrative head before marking complete.
+
+The DET-003 change removes the measured `-EncodedCommandlet` false positive without changing its negative ground-truth label; the production CLI measured aggregate precision 0.909091 and F1 0.952381 with no false negatives. DET-001 remains unchanged: five failed logins alone cannot establish whether activity is malicious. Phase 7 remains in progress until the documentation and benchmark narrative pass CI on the current feature head; see PR #1 for the exact head SHA.
+
+
 ### Phase 1 — Foundation
 - [x] Python package, CLI, SQLite bootstrap, docs, tests, and CI matrix.
 
@@ -120,4 +132,4 @@ The measured false positives are DET-001 on evidence `mistype-1`–`mistype-5` a
 
 ## Next milestone
 
-**Phase 7 is not approved or started.** No public deployment or new phase work should begin until Phase 6 is fully verified and reported.
+**Phase 7 is in progress on an isolated feature branch.** See the Phase 7 checklist for implemented work and pending verification.

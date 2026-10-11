@@ -948,7 +948,7 @@
       "description": "A benign-looking argument begins with the encoded-command text but is not the actual switch token.",
       "category": "process-execution",
       "priority": "medium",
-      "investigation_objective": "Measure whether substring matching overmatches command-line text that resembles the switch.",
+      "investigation_objective": "Verify a longer lookalike switch remains negative under token-aware matching.",
       "events": [
         {
           "event_id": "substring-lookalike",
@@ -970,9 +970,9 @@
         }
       ],
       "expected_detections": [],
-      "rationale": "The independently labeled scenario expects no detection because the argument is not the actual encoded-command switch; this deliberately probes the current contains-style condition.",
+      "rationale": "The independently labeled scenario expects no detection because -EncodedCommandlet is not the actual encoded-command switch; it verifies that token-boundary matching rejects the lookalike.",
       "limitations": [
-        "The rule may produce a false positive because its current predicate checks a substring rather than token boundaries."
+        "The command line is synthetic and does not model all PowerShell parsing or telemetry normalization behavior."
       ]
     },
     {

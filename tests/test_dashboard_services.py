@@ -247,10 +247,10 @@ def test_dashboard_evaluation_page_uses_canonical_evaluator_without_database(
     assert any("Detection evaluation" in item.value for item in app.title)
     assert any("Synthetic benchmark only" in item.value for item in app.warning)
     metrics = {item.label: item.value for item in app.metric}
-    assert metrics["Precision"] == "0.833"
+    assert metrics["Precision"] == "0.909"
     assert metrics["Recall"] == "1.000"
-    assert metrics["F1 score"] == "0.909"
-    assert metrics["False positives"] == "2"
+    assert metrics["F1 score"] == "0.952"
+    assert metrics["False positives"] == "1"
     assert metrics["False negatives"] == "0"
     assert any("Unexpected alerts / false positives" in item.label for item in app.expander)
     assert any(

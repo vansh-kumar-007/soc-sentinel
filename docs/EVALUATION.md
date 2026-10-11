@@ -1,6 +1,10 @@
 # Detection Evaluation
 
-Status: **Phase 6 complete and verified.** The implementation baseline was independently verified by [GitHub Actions run #252](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404) for commit [`e4fbbc9783a5224c5215e6616e915891cccf1116`](https://github.com/vansh-kumar-007/soc-sentinel/commit/e4fbbc9783a5224c5215e6616e915891cccf1116). All three Python jobs completed successfully: 120 tests per version, Ruff lint, Ruff formatting, and mypy on Python 3.11, 3.12, and 3.13. The Python 3.11 job also passed shipped-rule validation, ran the production evaluator on the committed benchmark (TP 10, FP 2, FN 0, supplemental TN 46; precision 0.833333, recall 1.000000, F1 0.909091), and uploaded both reports as artifact `detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116`. See `docs/PROJECT_STATUS.md` and the repository Actions page for verification history and the subsequent documentation revision check.
+Status: **Phase 6 complete and verified.** The implementation baseline was independently verified by [GitHub Actions run #252](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38152063404) for commit [`e4fbbc9783a5224c5215e6616e915891cccf1116`](https://github.com/vansh-kumar-007/soc-sentinel/commit/e4fbbc9783a5224c5215e6616e915891cccf1116). All three Python jobs completed successfully: 120 tests per version, Ruff lint, Ruff formatting, and mypy on Python 3.11, 3.12, and 3.13. The Python 3.11 job also passed shipped-rule validation, ran the production evaluator on the committed benchmark (TP 10, FP 2, FN 0, supplemental TN 46; precision 0.833333, recall 1.000000, F1 0.909091), and uploaded both reports as artifact `detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116`. Phase 7 changed DET-003 to require a standalone encoded-command switch token. The corrected implementation passed [CI run #261](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38157188277) on feature commit [`8fbb74bee426030d85a064a8277f9dfc01a875a7`](https://github.com/vansh-kumar-007/soc-sentinel/commit/8fbb74bee426030d85a064a8277f9dfc01a875a7): 122 tests, Ruff lint/format, and mypy passed on Python 3.11, 3.12, and 3.13; Python 3.11 also passed rule validation and the production evaluation CLI. The report artifact is available from that run. The report narrative and benchmark metadata were clarified in commit [`183ab840641567ca789174a114679e5581426cb0`](https://github.com/vansh-kumar-007/soc-sentinel/commit/183ab840641567ca789174a114679e5581426cb0). A fresh run is required for the current PR head because the connected GitHub actions can inspect runs but cannot dispatch a workflow for a newly updated head.
+
+## Phase 7 comparison
+
+The Phase 6 baseline was TP 10, FP 2, FN 0, supplemental TN 46, precision 0.833333, recall 1.000000, and F1 0.909091. The production evaluator measured Phase 7 at TP 10, FP 1, FN 0, supplemental TN 47, precision 0.909091, recall 1.000000, and F1 0.952381. The `process-encoded-substring-lookalike` scenario now passes with no DET-003 alert, while all three expected DET-003 detections remain matched. The benchmark's negative label, event, and expected detections were not changed. DET-001 is intentionally unchanged because five failed logins alone cannot distinguish benign mistypes from malicious activity.
 
 ## Reproduce the evaluation
 
@@ -54,26 +58,25 @@ The committed synthetic benchmark measures:
 |---|---:|---:|---:|---:|---:|---:|---:|
 | DET-001 | 5 | 1 | 0 | 14 | 0.833333 | 1.000000 | 0.909091 |
 | DET-002 | 2 | 0 | 0 | 17 | 1.000000 | 1.000000 | 1.000000 |
-| DET-003 | 3 | 1 | 0 | 15 | 0.750000 | 1.000000 | 0.857143 |
-| **Aggregate** | **10** | **2** | **0** | **46** | **0.833333** | **1.000000** | **0.909091** |
+| DET-003 | 3 | 0 | 0 | 16 | 1.000000 | 1.000000 | 1.000000 |
+| **Aggregate** | **10** | **1** | **0** | **47** | **0.909091** | **1.000000** | **0.952381** |
 
 *TN is supplemental: it counts a negative scenario-rule opportunity with no alert and is not included in precision, recall, or F1. TP/FN count expected detection instances and FP counts unmatched alert instances, so TN is not a conventional balanced confusion-matrix count.
 
 ### False-positive details
 
 - **`auth-benign-mistyped-passwords` / DET-001:** evidence `mistype-1`, `mistype-2`, `mistype-3`, `mistype-4`, `mistype-5`; all five failed logins belong to fictional account `pat.taylor` and source `192.0.2.45`. The benign typo ground truth is intentional and independent. The count-and-window detector cannot distinguish these failures from malicious activity based on available fields.
-- **`process-encoded-substring-lookalike` / DET-003:** evidence `substring-lookalike`, command line `powershell.exe -EncodedCommandlet status`. The detector uses substring matching for `-EncodedCommand`, so it matches the lookalike instead of requiring the actual switch token.
 
-There were no false negatives on this constructed benchmark. These values are a regression baseline for the selected synthetic scenarios, not an estimate of real-world SOC precision or recall. Production-rule changes remain separate from evaluation fixes.
+There were no false negatives on this constructed benchmark. Compared with Phase 6, Phase 7 removes the DET-003 false positive without losing genuine detections; the sole remaining false positive is DET-001 on the five benign mistyped-password events. These values are a regression result for the selected synthetic scenarios, not an estimate of real-world SOC precision or recall.
 
 ## Interpreting results and tuning candidates
 
-The benchmark deliberately includes two hard negative examples:
+The benchmark retains two important negative cases:
 
 - Repeated benign mistyped-password failures can still satisfy DET-001's count-and-window condition. This is an inherent ambiguity in the available fields, not evidence that the ground truth should be changed.
-- A benign-looking argument such as `-EncodedCommandlet` can contain the text `-EncodedCommand`. If the current DET-003 predicate uses substring matching, it may alert even though the intended switch token is absent. This is a rule-tuning candidate: consider token-boundary-aware matching in a separately reviewed change, with regression tests for valid casing and benign lookalikes. Phase 6 does not silently alter production rules.
+- `-EncodedCommandlet` is a lookalike, not the intended switch. The Phase 7 `icontains_token` operator rejects it while preserving case-insensitive matching of standalone switches. The operator uses regex token boundaries; it is not a full PowerShell parser, does not decode payloads, and does not establish malicious intent.
 
-The expected output of this first benchmark is therefore not assumed to be perfect. The evaluation command is designed to surface mismatches so they can be reviewed as detection-engineering findings.
+The evaluator continues to report mismatches rather than changing ground-truth labels to improve scores.
 
 ## Fingerprints and repeatability
 

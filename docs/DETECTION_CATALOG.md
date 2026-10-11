@@ -29,12 +29,12 @@ Rules ship as YAML under the rules directory. Their schema and operator grammar 
 ## DET-003 — Encoded PowerShell command execution
 
 - **Objective:** flag endpoint process telemetry indicating a PowerShell-family process launched with an encoded-command switch.
-- **Required telemetry:** process event, process.name matching a configured PowerShell executable name, and process.command_line containing `-EncodedCommand` (case-insensitive).
+- **Required telemetry:** process event, process.name matching a configured PowerShell executable name, and process.command_line containing the standalone `-EncodedCommand` switch token (case-insensitive).
 - **Logic:** one process event must match both conditions.
 - **Grouping:** host_id is included in alert context; this is a single-event match, not a process-chain correlation.
 - **Severity / ATT&CK:** medium; T1059.001 (PowerShell).
 - **Evidence:** the exact process event ID, host grouping, timestamp, and matched-rule rationale.
-- **False positives:** legitimate administration scripts, software deployment tools, and security products may use encoded commands. Benign PowerShell invocations without the encoded-command switch should not trigger this rule.
+- **False positives:** legitimate administration scripts, software deployment tools, and security products may use encoded commands. Benign PowerShell invocations without the encoded-command switch should not trigger this rule. Prefix/suffix lookalikes such as `-EncodedCommandlet` are rejected by token-boundary matching.
 - **Limitations:** the event schema supports parent PID, executable, command line, and SHA-256, but the initial rule does not require parent-process telemetry or a hash. Command-line logging may be absent or truncated. This signal is suspicious context, not a malware verdict.
 
 ## Evaluation discipline
