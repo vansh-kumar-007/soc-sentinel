@@ -216,6 +216,9 @@ def test_report_json_markdown_and_fingerprints_are_stable(tmp_path: Path) -> Non
     assert "Synthetic benchmark only" in first_markdown
     assert "False positives / unexpected alerts" in first_markdown
     assert "Rule-set SHA-256" in first_markdown
+    assert "| 10 | 2 | 0 | 46 | 0.8333 | 1.0000 | 0.9091 |" in first_markdown
+    assert "**auth-benign-mistyped-passwords / DET-001**" in first_markdown
+    assert "**process-encoded-substring-lookalike / DET-003**" in first_markdown
     assert render_markdown(report) == first_markdown
 
 

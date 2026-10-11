@@ -41,6 +41,9 @@ jobs:
         run: ruff format --check .
       - name: Type check
         run: mypy src tests
+      - name: Validate shipped detection rules
+        if: matrix.python-version == '3.11'
+        run: soc-sentinel validate-rules --rules rules/
       - name: Generate reproducible detection evaluation
         if: matrix.python-version == '3.11'
         run: soc-sentinel evaluate --dataset data/evaluation/benchmark.json --rules rules/ --output reports/evaluation/

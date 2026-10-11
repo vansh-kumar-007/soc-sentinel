@@ -105,6 +105,8 @@ Verification history:
 - [Run #247](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38147814980) passed pytest (120 tests) and Ruff lint on all three Python versions, then failed Ruff formatting on three files. This commit applies the formatter changes reported by that run. Type checking and report generation did not run because the format gate stopped the jobs.
 - [Run #248](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148111026) passed pytest (120 tests), Ruff lint, and Ruff format on Python 3.11–3.13. Mypy then found one `no-any-return` diagnostic at `tests/test_evaluation.py:27`; `read_benchmark()` returned `json.loads()` directly. This correction validates that the root is an object and returns an explicitly shaped dictionary.
 
+- [Run #249](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38148239361) passed 120 tests, Ruff lint, Ruff formatting, and mypy on all three Python versions. Python 3.11 additionally executed `soc-sentinel evaluate`, reported TP 10 / FP 2 / FN 0 / TN* 46 (precision 0.833333, recall 1.0, F1 0.909091), and uploaded the JSON and Markdown report artifact. This run's SHA is not the final Phase 6 head because the explicit `validate-rules` workflow smoke step and JSON/Markdown consistency assertions are added next.
+
 Phase 6 must remain pending until a new run for the current main SHA passes pytest, Ruff lint, Ruff format, mypy, CLI benchmark/report generation, and report artifact upload on the Python 3.11–3.13 matrix.
 - [x] Publish measured benchmark outcomes, per-rule metrics, and each known false-positive evidence set.
 
