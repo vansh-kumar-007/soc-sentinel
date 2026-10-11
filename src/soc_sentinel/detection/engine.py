@@ -261,7 +261,7 @@ def _matches_condition(event: SecurityEvent, condition: Condition) -> bool:
         return (
             isinstance(actual, str)
             and isinstance(expected, str)
-            and re.search(rf"(?<![\\w-]){re.escape(expected)}(?![\\w-])", actual, flags=re.IGNORECASE) is not None
+            and re.search(rf"(?<![\w-]){re.escape(expected)}(?![\w-])", actual, flags=re.IGNORECASE) is not None
         )
     if operator == "starts_with":
         return isinstance(actual, str) and isinstance(expected, str) and actual.startswith(expected)
