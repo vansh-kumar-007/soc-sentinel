@@ -1,2 +1,3 @@
 # Install the existing package and its optional Streamlit dashboard dependencies.
 -e .[dashboard]
+streamlit==1.65.0
