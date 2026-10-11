@@ -125,6 +125,28 @@ def test_alert_and_evidence_detail_includes_correlation_provenance(tmp_path: Pat
     assert {item["timestamp_type"] for item in timeline} >= {"security_event", "application_audit"}
 
 
+def test_alert_filters_preserve_evidence_and_incident_links(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    all_alerts = list_dashboard_alerts(path, limit=1000)
+    assert all_alerts
+    chosen = all_alerts[0]
+    filtered = list_dashboard_alerts(
+        path,
+        rule_ids={chosen["rule_id"]},
+        incident_association="linked",
+    )
+    assert filtered
+    assert all(item["rule_id"] == chosen["rule_id"] for item in filtered)
+    assert all(item["incident_id"] for item in filtered)
+    for item in filtered:
+        details = get_incident_details(path, item["incident_id"])
+        assert set(item["evidence_event_ids"]).issubset(
+            set(details["evidence_events"]) | set(details["missing_event_ids"])
+        )
+    with pytest.raises(DashboardServiceError, match="Incident association"):
+        list_dashboard_alerts(path, incident_association="anything")
+
+
 def test_missing_source_event_is_reported_not_fabricated(tmp_path: Path) -> None:
     path, _ = seeded(tmp_path)
     incident = list_dashboard_incidents(path, host="ws-fin-07")["items"][0]

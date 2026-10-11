@@ -551,17 +551,50 @@ def incident_explorer(db: Path) -> None:
 def alerts_page(db: Path) -> None:
     header(
         "Alerts & evidence",
-        "Inspect persisted detection output without conflating evidence with conclusions.",
+        "Search persisted detection output while keeping evidence distinct from analyst conclusions.",
     )
-    a, b = st.columns([3, 1])
-    with a:
-        query = st.text_input("Search alerts", placeholder="Alert ID, rule, entity or rationale")
-    with b:
+    all_alerts = list_dashboard_alerts(db, limit=1000)
+    available_rules = sorted({item["rule_id"] for item in all_alerts})
+    first, second, third, fourth = st.columns([2, 1, 1, 1])
+    with first:
+        query = st.text_input("Search alerts", placeholder="Alert ID, rule, entity, timestamp, or rationale")
+    with second:
         severities = st.multiselect("Severity", SEVERITIES)
-    alerts = list_dashboard_alerts(db, query=query, severities=set(severities) or None)
-    st.caption(f"{len(alerts)} alert(s) match this view; at most 1,000 are shown.")
+    with third:
+        rule_id = st.selectbox("Detection rule", ["All rules", *available_rules])
+    with fourth:
+        association = st.selectbox(
+            "Incident link", ["All alerts", "Linked", "Unassigned"]
+        )
+    host_col, user_col = st.columns(2)
+    with host_col:
+        host = st.text_input("Host contains", placeholder="Host identifier")
+    with user_col:
+        username = st.text_input("Username contains", placeholder="Account name")
+    date_from, date_to = st.columns(2)
+    with date_from:
+        observed_from = st.date_input("Observed from", value=None, key="alert_observed_from")
+    with date_to:
+        observed_to = st.date_input("Observed through", value=None, key="alert_observed_to")
+    alerts = list_dashboard_alerts(
+        db,
+        query=query,
+        severities=set(severities) or None,
+        rule_ids={rule_id} if rule_id != "All rules" else None,
+        host=host,
+        username=username,
+        incident_association={
+            "All alerts": "all",
+            "Linked": "linked",
+            "Unassigned": "unassigned",
+        }[association],
+        observed_from=observed_from if isinstance(observed_from, date) else None,
+        observed_to=observed_to if isinstance(observed_to, date) else None,
+        limit=1000,
+    )
+    st.caption(f"{len(alerts)} alert(s) match these filters; at most 1,000 are shown.")
     if not alerts:
-        empty("No matching alerts", "Run the synthetic lab or adjust your search.")
+        empty("No matching alerts", "Clear a filter or run the local synthetic lab.")
         return
     st.dataframe(
         [
@@ -754,6 +787,53 @@ def evaluation_page() -> None:
         f"{report['dataset']['event_count']} source events · "
         f"{report['rules']['enabled_rule_count']} enabled rules"
     )
+    st.subheader("Phase 6 baseline comparison")
+    st.caption(
+        "Historical reference: verified CI run #252 and artifact "
+        "detection-evaluation-e4fbbc9783a5224c5215e6616e915891cccf1116. "
+        "Current values are recomputed by the canonical evaluator."
+    )
+    baseline = {
+        "TP": 10,
+        "FP": 2,
+        "FN": 0,
+        "Supplemental TN*": 46,
+        "Precision": 0.833333,
+        "Recall": 1.0,
+        "F1": 0.909091,
+    }
+    current = {
+        "TP": aggregate["tp"],
+        "FP": aggregate["fp"],
+        "FN": aggregate["fn"],
+        "Supplemental TN*": aggregate["tn"],
+        "Precision": aggregate["precision"],
+        "Recall": aggregate["recall"],
+        "F1": aggregate["f1"],
+    }
+    comparison_rows = []
+    for metric, baseline_value in baseline.items():
+        current_value = current[metric]
+        if current_value is None:
+            delta = "n/a"
+        elif isinstance(current_value, float):
+            delta = f"{current_value - baseline_value:+.6f}"
+        else:
+            delta = f"{current_value - baseline_value:+d}"
+        comparison_rows.append(
+            {
+                "Metric": metric,
+                "Current": current_value,
+                "Phase 6 baseline": baseline_value,
+                "Change": delta,
+            }
+        )
+    st.dataframe(comparison_rows, hide_index=True, use_container_width=True)
+    st.caption(
+        "* Supplemental TN counts negative scenario-rule opportunities; it is not conventional "
+        "confusion-matrix TN. Synthetic benchmark comparisons do not establish real-world efficacy."
+    )
+
     st.subheader("Per-rule performance")
     st.dataframe(report["per_rule"], use_container_width=True, hide_index=True)
     st.subheader("Scenario outcomes")

@@ -279,9 +279,15 @@ def list_dashboard_alerts(
     *,
     query: str = "",
     severities: set[str] | None = None,
+    rule_ids: set[str] | None = None,
+    host: str = "",
+    username: str = "",
+    incident_association: str = "all",
+    observed_from: date | None = None,
+    observed_to: date | None = None,
     limit: int = 500,
 ) -> list[dict[str, Any]]:
-    """List persisted alert payloads with their optional incident assignment."""
+    """Filter persisted alert payloads without breaking incident/evidence relationships."""
     connection = _read_connection(database_path)
     try:
         rows = connection.execute(
@@ -295,11 +301,33 @@ def list_dashboard_alerts(
         raise DashboardServiceError(f"Cannot list persisted alerts: {exc}") from exc
     finally:
         connection.close()
+    if incident_association not in {"all", "linked", "unassigned"}:
+        raise DashboardServiceError("Incident association must be all, linked, or unassigned.")
     needle = query.strip().casefold()
+    host_query = host.strip().casefold()
+    username_query = username.strip().casefold()
     result: list[dict[str, Any]] = []
     for row in rows:
         alert = json.loads(row["payload_json"])
         if severities and alert["severity"] not in severities:
+            continue
+        if rule_ids and alert["rule_id"] not in rule_ids:
+            continue
+        linked = row["incident_id"] is not None
+        if incident_association == "linked" and not linked:
+            continue
+        if incident_association == "unassigned" and linked:
+            continue
+        first_day = str(alert["first_observed"])[:10]
+        last_day = str(alert["last_observed"])[:10]
+        if observed_from and last_day < observed_from.isoformat():
+            continue
+        if observed_to and first_day > observed_to.isoformat():
+            continue
+        entity_text = json.dumps(alert["grouping_context"], sort_keys=True).casefold()
+        if host_query and host_query not in entity_text:
+            continue
+        if username_query and username_query not in entity_text:
             continue
         alert["incident_id"] = row["incident_id"]
         alert["incident_reference"] = row["incident_reference"]
@@ -309,7 +337,9 @@ def list_dashboard_alerts(
                 alert["rule_id"],
                 alert["rule_title"],
                 alert["rationale"],
-                json.dumps(alert["grouping_context"], sort_keys=True),
+                alert["first_observed"],
+                alert["last_observed"],
+                entity_text,
             )
         ).casefold()
         if not needle or needle in searchable:
