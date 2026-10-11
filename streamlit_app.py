@@ -19,7 +19,7 @@ def main() -> None:
         # This entry point is for hosting only: never expose analyst writes publicly.
         os.environ["SOC_SENTINEL_MODE"] = "public-demo"
     os.environ["SOC_SENTINEL_DB"] = str(
-        Path(tempfile.gettempdir()) / "soc-sentinel-public-demo.sqlite3"
+        Path(tempfile.gettempdir()) / f"soc-sentinel-public-demo-{os.getpid()}.sqlite3"
     )
     from soc_sentinel.dashboard import main as run_dashboard
 

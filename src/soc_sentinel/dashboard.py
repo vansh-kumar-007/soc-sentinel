@@ -915,7 +915,7 @@ def main() -> None:
     is_public = mode == PUBLIC_DEMO
     database_path = DB_PATH
     if is_public:
-        database_path = Path(tempfile.gettempdir()) / "soc-sentinel-public-demo.sqlite3"
+        database_path = Path(tempfile.gettempdir()) / f"soc-sentinel-public-demo-{os.getpid()}.sqlite3"
         try:
             ensure_public_demo_database(database_path)
         except (DashboardServiceError, sqlite3.Error, OSError, ValueError):
