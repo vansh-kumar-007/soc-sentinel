@@ -28,12 +28,12 @@ Pass either one YAML file or a directory. A directory is read in lexical order a
 A condition has exactly these fields:
 
 - field: allow-listed normalized event field.
-- operator: one of eq, ne, in, not_in, contains, icontains, starts_with, ends_with, gt, gte, lt, lte.
+- operator: one of eq, ne, in, not_in, contains, icontains, icontains_token, starts_with, ends_with, gt, gte, lt, lte.
 - value: scalar comparison value or a non-empty list for in/not_in.
 
 Supported fields are event_id, timestamp, event_type, host_id, username, source_ip, destination_ip, action, outcome, process.name, process.executable, process.pid, process.parent_pid, process.command_line, and process.hash_sha256. Scenario metadata and arbitrary attributes are intentionally not queryable fields.
 
-String equality, membership, contains, starts_with, and ends_with are case-sensitive. icontains is explicitly case-insensitive. Numeric comparisons are limited to process.pid and process.parent_pid. Timestamp conditions support equality/inequality only and require timezone-aware ISO-8601 values. A missing optional field never matches, including ne/not_in.
+String equality, membership, contains, starts_with, and ends_with are case-sensitive. icontains is explicitly case-insensitive. icontains_token is case-insensitive and requires the compared string to be bounded by non-word characters; hyphens are not boundaries so longer switch names and double-hyphen lookalikes do not match. Numeric comparisons are limited to process.pid and process.parent_pid. Timestamp conditions support equality/inequality only and require timezone-aware ISO-8601 values. A missing optional field never matches, including ne/not_in.
 
 All conditions in one conditions list are ANDed. There is no arbitrary expression language and no OR, regex, Python, or shell execution.
 
