@@ -7,11 +7,13 @@ import runpy
 import tempfile
 from pathlib import Path
 
+import pytest
+
 import soc_sentinel.dashboard as dashboard
 
 
 def test_public_entrypoint_forces_read_only_mode_and_ignores_analyst_db(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     captured: dict[str, str | None] = {}
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
