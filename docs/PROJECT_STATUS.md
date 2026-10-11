@@ -133,8 +133,23 @@ Verification hygiene: a passing Actions run is evidence only for its exact commi
 
 ### Phase 6 findings to review
 
-The measured false positives are DET-001 on evidence `mistype-1`–`mistype-5` and DET-003 on `substring-lookalike`. Neither ground-truth label was changed after observing detector output. A token-boundary improvement to DET-003 remains a separately reviewed future rule change.
+At the Phase 6 baseline, the measured false positives were DET-001 on evidence `mistype-1`–`mistype-5` and DET-003 on `substring-lookalike`. Neither ground-truth label was changed after observing detector output. Phase 7 resolved the DET-003 substring-lookalike false positive with token-aware switch matching; the DET-001 benign mistyped-password false positive remains documented.
+
+## Phase 8 — Live-accessible SOC dashboard
+
+**Implementation status: complete in PR #3; public hosting requires one manual account authorization step.** Phases 1–7 and their historical evaluation results remain intact.
+
+- [x] Improved the existing Streamlit workstation: operations overview, persisted severity/rule metrics, recent detections, searchable/filterable alert explorer, evidence links, incident investigation, audit history, and canonical evaluation.
+- [x] Added a fail-safe public entry point, synthetic-only process-scoped SQLite data, service-layer write guards, protected demo reset, idempotent initialization, and a manual refresh control.
+- [x] Preserved local analyst lifecycle controls, the allow-listed synthetic pipeline, SQLite compatibility, and the CLI.
+- [x] Recovered and validated the Phase 6 baseline report artifact from run #252 and retained its metrics/provenance in the evaluation module.
+- [x] Added public-mode mutation, initialization, filter/evidence, entry-point, and baseline-provenance tests.
+- [x] [PR verification run #289](https://github.com/vansh-kumar-007/soc-sentinel/actions/runs/38168819980) passed on tested head SHA `2cb35f8e7dd6dbe9036055b6a4c96a2b01692f67`: 128 tests passed on each of Python 3.11, 3.12, and 3.13; Ruff lint, Ruff format, and mypy passed on all three. Python 3.11 also passed rule validation and generated the measured evaluation artifact.
+- [x] Revalidated current synthetic benchmark report: TP 10, FP 1, FN 0, supplemental TN 47, precision 0.909091, recall 1.000000, F1 0.952381. DET-003 now has FP 0 and F1 1.000000; DET-001 retains one benign false positive.
+- [ ] Public deployment and independent browser verification remain pending. The [Streamlit Community Cloud deploy page](https://share.streamlit.io/) requires the repository owner to authorize the app once. No live URL is claimed until the deployed service is independently opened and verified.
+
+The public demo uses only synthetic fixture data and disposable temporary SQLite storage; it does not receive external telemetry and does not guarantee persistence or continuous uptime. Use local analyst mode for writable investigations and real local data.
 
 ## Next milestone
 
-**Phase 8 has not started.** Phase 7 is complete and verified; no Phase 8 implementation work has been initiated.
+**Phase 8 implementation is complete; public deployment is pending account authorization and independent verification.** Phase 9 has not started.
