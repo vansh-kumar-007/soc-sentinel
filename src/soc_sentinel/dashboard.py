@@ -9,7 +9,7 @@ import importlib
 import os
 import sqlite3
 import tempfile
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -20,9 +20,9 @@ from soc_sentinel.dashboard_services import (
     add_investigation_note,
     assign_incident_to_analyst,
     change_incident_status,
+    ensure_public_demo_database,
     get_dashboard_summary,
     get_incident_details,
-    ensure_public_demo_database,
     list_dashboard_alerts,
     list_dashboard_incidents,
     reopen_incident,
@@ -899,7 +899,7 @@ def main() -> None:
                 "The application did not reset the existing database."
             )
             return
-    st.session_state["last_rendered_at"] = datetime.now(timezone.utc).strftime(
+    st.session_state["last_rendered_at"] = datetime.now(UTC).strftime(
         "%Y-%m-%d %H:%M:%S UTC"
     )
     with st.sidebar:
