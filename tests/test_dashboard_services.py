@@ -387,7 +387,7 @@ def test_public_synthetic_preview_does_not_change_public_database(
     result = run_public_synthetic_preview(fixture_key="soc_demo", rule_profile="all")
     after = snapshot()
 
-    assert result["fixture"] == "soc_demo.jsonl"
+    assert result["fixture"] == "soc-demo.jsonl"
     assert result["alerts_generated"] > 0
     assert result["incidents"]
     assert result["database"] == "ephemeral-public-preview (discarded after execution)"
