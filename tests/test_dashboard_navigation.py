@@ -182,6 +182,7 @@ def test_incident_explorer_rejects_inverted_date_range_without_traceback(
     assert not app.exception
     assert any("must be on or before" in item.value for item in app.warning)
 
+
 def test_public_initialization_error_does_not_disclose_traceback_or_source_path(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
