@@ -103,6 +103,52 @@ def test_summary_and_incident_filters_use_persisted_data(tmp_path: Path) -> None
         list_dashboard_incidents(path, sort_by="raw_sql")
 
 
+
+def test_incident_filters_reject_inverted_dates_and_unknown_values(tmp_path: Path) -> None:
+    from datetime import date
+
+    path, _ = seeded(tmp_path)
+    with pytest.raises(DashboardServiceError, match="start date must be on or before"):
+        list_dashboard_incidents(
+            path, observed_from=date(2026, 10, 12), observed_to=date(2026, 10, 11)
+        )
+    with pytest.raises(DashboardServiceError, match="status filter"):
+        list_dashboard_incidents(path, statuses={"root"})
+    with pytest.raises(DashboardServiceError, match="severity filter"):
+        list_dashboard_incidents(path, severities={"urgent"})
+
+
+def test_alert_filters_reject_inverted_dates_and_invalid_bounds(tmp_path: Path) -> None:
+    from datetime import date
+
+    path, _ = seeded(tmp_path)
+    with pytest.raises(DashboardServiceError, match="start date must be on or before"):
+        list_dashboard_alerts(
+            path, observed_from=date(2026, 10, 12), observed_to=date(2026, 10, 11)
+        )
+    with pytest.raises(DashboardServiceError, match="limit must be positive"):
+        list_dashboard_alerts(path, limit=0)
+    with pytest.raises(DashboardServiceError, match="severity filter"):
+        list_dashboard_alerts(path, severities={"urgent"})
+
+
+def test_public_malformed_alert_json_fails_with_safe_dashboard_error(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    with sqlite3.connect(path) as connection:
+        connection.execute("UPDATE alerts SET payload_json='{' WHERE alert_id=(SELECT alert_id FROM alerts LIMIT 1)")
+    with pytest.raises(DashboardServiceError, match="stored alert record is invalid"):
+        list_dashboard_alerts(path)
+
+
+def test_public_malformed_evidence_json_fails_with_safe_dashboard_error(tmp_path: Path) -> None:
+    path, _ = seeded(tmp_path)
+    incident = list_dashboard_incidents(path, host="ws-fin-07")["items"][0]
+    event_id = get_incident_details(path, incident["incident_id"])["alerts"][0]["evidence_event_ids"][0]
+    with sqlite3.connect(path) as connection:
+        connection.execute("UPDATE events SET attributes_json='{' WHERE event_id=?", (event_id,))
+    with pytest.raises(DashboardServiceError, match="stored source evidence is invalid"):
+        get_incident_details(path, incident["incident_id"])
+
 def test_alert_and_evidence_detail_includes_correlation_provenance(tmp_path: Path) -> None:
     path, _ = seeded(tmp_path)
     alerts = list_dashboard_alerts(path)
