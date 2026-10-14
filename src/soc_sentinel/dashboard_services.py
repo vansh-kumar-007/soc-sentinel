@@ -68,6 +68,14 @@ def _read_connection(database_path: str | Path) -> sqlite3.Connection:
         raise DashboardServiceError(f"Cannot open SQLite database read-only: {exc}") from exc
 
 
+def _validate_date_range(
+    observed_from: date | None, observed_to: date | None, *, field: str
+) -> None:
+    """Reject inverted date bounds before filtering persisted records."""
+    if observed_from is not None and observed_to is not None and observed_from > observed_to:
+        raise DashboardServiceError(f"{field} start date must be on or before its end date.")
+
+
 def _as_dict(incident: Incident) -> dict[str, Any]:
     return incident.model_dump(mode="json")
 
@@ -181,6 +189,15 @@ def list_dashboard_incidents(
     }
     if sort_by not in sort_fields:
         raise DashboardServiceError(f"Unsupported incident sort field: {sort_by}")
+    _validate_date_range(observed_from, observed_to, field="Observed")
+    invalid_statuses = (statuses or set()) - {item.value for item in IncidentStatus}
+    if invalid_statuses:
+        raise DashboardServiceError("Unsupported incident status filter.")
+    from soc_sentinel.detection.rules import Severity
+
+    invalid_severities = (severities or set()) - {item.value for item in Severity}
+    if invalid_severities:
+        raise DashboardServiceError("Unsupported incident severity filter.")
     if page < 1 or page_size < 1 or page_size > 200:
         raise DashboardServiceError(
             "Page must be positive and page_size must be between 1 and 200."
@@ -288,6 +305,12 @@ def list_dashboard_alerts(
     limit: int = 500,
 ) -> list[dict[str, Any]]:
     """Filter persisted alert payloads without breaking incident/evidence relationships."""
+    _validate_date_range(observed_from, observed_to, field="Observed")
+    valid_severities = {"informational", "low", "medium", "high", "critical"}
+    if severities and severities - valid_severities:
+        raise DashboardServiceError("Unsupported alert severity filter.")
+    if limit < 1:
+        raise DashboardServiceError("Alert limit must be positive.")
     connection = _read_connection(database_path)
     try:
         rows = connection.execute(
