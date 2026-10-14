@@ -427,8 +427,9 @@ def workspace(db: Path, incident_id: str) -> None:
                     )
                     st.success(f"Note saved at {saved['created_at']}.")
                     st.rerun()
-                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
-                    st.error(f"Note was not saved: {exc}")
+                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError):
+                    logger.exception("Investigation note save failed")
+                    st.error("Note was not saved. Details were recorded in server logs.")
                     st.caption("Reload the incident if its version changed.")
 
     with tabs[5]:
@@ -495,9 +496,12 @@ def workspace(db: Path, incident_id: str) -> None:
                         )
                     st.success(f"Status saved: {updated.status.value} · version {updated.version}")
                     st.rerun()
-                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
-                    st.error(f"Status was not changed: {exc}")
-                    st.caption("Reload the incident before retrying a stale update.")
+                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError):
+                    logger.exception("Incident status transition failed")
+                    st.error(
+                        "Status was not changed. Reload the incident and retry if appropriate."
+                    )
+                    st.caption("Details were recorded in server logs.")
             st.divider()
             with st.form("assignment_form"):
                 analyst = st.text_input(
@@ -514,8 +518,9 @@ def workspace(db: Path, incident_id: str) -> None:
                         f"Assignment saved: {updated.assigned_analyst or 'unassigned'} · version {updated.version}"
                     )
                     st.rerun()
-                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
-                    st.error(f"Assignment was not changed: {exc}")
+                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError):
+                    logger.exception("Incident assignment failed")
+                    st.error("Assignment was not changed. Details were recorded in server logs.")
 
 
 def incident_explorer(db: Path) -> None:
@@ -551,6 +556,9 @@ def incident_explorer(db: Path) -> None:
             descending = st.checkbox("Descending", value=True)
         with g:
             size = st.selectbox("Page size", [10, 25, 50, 100], index=1)
+    if start and end and start > end:
+        st.warning("Observed-from date must be on or before observed-through date.")
+        return
     kwargs: dict[str, Any] = {
         "query": query,
         "statuses": set(statuses) or None,
@@ -625,6 +633,9 @@ def alerts_page(db: Path) -> None:
         observed_from = st.date_input("Observed from", value=None, key="alert_observed_from")
     with date_to:
         observed_to = st.date_input("Observed through", value=None, key="alert_observed_to")
+    if observed_from and observed_to and observed_from > observed_to:
+        st.warning("Observed-from date must be on or before observed-through date.")
+        return
     alerts = list_dashboard_alerts(
         db,
         query=query,
@@ -761,14 +772,14 @@ def synthetic_lab(db: Path) -> None:
             sqlite3.Error,
             OSError,
             ValueError,
-        ) as exc:
+        ):
             logger.exception("Synthetic lab pipeline failed")
             if operating_mode() == PUBLIC_DEMO:
                 st.error(
                     "The isolated synthetic preview failed; no public or analyst data was changed."
                 )
             else:
-                st.error(f"Pipeline failed: {exc}")
+                st.error("Pipeline failed. Details were recorded in server logs.")
     result = st.session_state.get("pipeline_result")
     if result:
         cols = st.columns(4)
@@ -832,14 +843,14 @@ def evaluation_page() -> None:
     rules_path = PROJECT_ROOT / "rules"
     try:
         report = evaluate_dataset(dataset_path, rules_path)
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError):
         logger.exception("Evaluation page could not be loaded")
         if operating_mode() == PUBLIC_DEMO:
             st.error(
                 "Detection evaluation could not be loaded. Details were recorded in server logs."
             )
         else:
-            st.error(f"Evaluation could not complete: {exc}")
+            st.error("Evaluation could not complete. Details were recorded in server logs.")
         return
 
     st.warning(
@@ -999,6 +1010,7 @@ def _main() -> None:
         try:
             ensure_public_demo_database(database_path)
         except (DashboardServiceError, sqlite3.Error, OSError, ValueError):
+            logger.exception("Public demo initialization failed safely")
             st.error(
                 "The synthetic demonstration data could not be initialized safely. "
                 "The application did not reset the existing database."

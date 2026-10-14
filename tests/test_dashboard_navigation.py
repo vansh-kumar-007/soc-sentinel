@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import tempfile
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -166,6 +167,20 @@ def test_overview_activity_chart_uses_persisted_dates_and_empty_state_is_honest(
     empty_app = _render_app(monkeypatch, empty_path)
     assert not empty_app.exception
     assert any("No activity recorded" in item.value for item in empty_app.markdown)
+
+
+def test_incident_explorer_rejects_inverted_date_range_without_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "local-analyst")
+    database_path = tmp_path / "soc-sentinel-demo.sqlite3"
+    run_synthetic_investigation(database_path)
+    app = _render_app(monkeypatch, database_path)
+    app.radio[0].set_value("Incident explorer").run()
+    app.date_input[0].set_value(date(2026, 10, 12)).run()
+    app.date_input[1].set_value(date(2026, 10, 11)).run()
+    assert not app.exception
+    assert any("must be on or before" in item.value for item in app.warning)
 
 
 def test_public_initialization_error_does_not_disclose_traceback_or_source_path(

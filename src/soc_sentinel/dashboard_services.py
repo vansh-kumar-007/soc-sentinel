@@ -13,7 +13,7 @@ from typing import Any
 from soc_sentinel.correlation import load_correlation_policy
 from soc_sentinel.db import insert_events
 from soc_sentinel.detection.engine import evaluate_events
-from soc_sentinel.detection.rules import load_rules
+from soc_sentinel.detection.rules import Severity, load_rules
 from soc_sentinel.incidents import (
     Incident,
     IncidentError,
@@ -66,6 +66,14 @@ def _read_connection(database_path: str | Path) -> sqlite3.Connection:
         return connection
     except sqlite3.Error as exc:
         raise DashboardServiceError(f"Cannot open SQLite database read-only: {exc}") from exc
+
+
+def _validate_date_range(
+    observed_from: date | None, observed_to: date | None, *, field: str
+) -> None:
+    """Reject inverted date bounds before filtering persisted records."""
+    if observed_from is not None and observed_to is not None and observed_from > observed_to:
+        raise DashboardServiceError(f"{field} start date must be on or before its end date.")
 
 
 def _as_dict(incident: Incident) -> dict[str, Any]:
@@ -181,6 +189,13 @@ def list_dashboard_incidents(
     }
     if sort_by not in sort_fields:
         raise DashboardServiceError(f"Unsupported incident sort field: {sort_by}")
+    _validate_date_range(observed_from, observed_to, field="Observed")
+    invalid_statuses = (statuses or set()) - {item.value for item in IncidentStatus}
+    if invalid_statuses:
+        raise DashboardServiceError("Unsupported incident status filter.")
+    invalid_severities = (severities or set()) - {item.value for item in Severity}
+    if invalid_severities:
+        raise DashboardServiceError("Unsupported incident severity filter.")
     if page < 1 or page_size < 1 or page_size > 200:
         raise DashboardServiceError(
             "Page must be positive and page_size must be between 1 and 200."
@@ -265,8 +280,10 @@ def get_incident_details(database_path: str | Path, incident_id: str) -> dict[st
                     "source_available": True,
                     "provenance": "source_telemetry",
                 }
-    except sqlite3.Error as exc:
-        raise DashboardServiceError(f"Cannot retrieve source evidence: {exc}") from exc
+    except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise DashboardServiceError(
+            "The stored source evidence is invalid or unavailable."
+        ) from exc
     finally:
         connection.close()
     details["evidence_events"] = events
@@ -288,6 +305,12 @@ def list_dashboard_alerts(
     limit: int = 500,
 ) -> list[dict[str, Any]]:
     """Filter persisted alert payloads without breaking incident/evidence relationships."""
+    _validate_date_range(observed_from, observed_to, field="Observed")
+    valid_severities = {"informational", "low", "medium", "high", "critical"}
+    if severities and severities - valid_severities:
+        raise DashboardServiceError("Unsupported alert severity filter.")
+    if limit < 1:
+        raise DashboardServiceError("Alert limit must be positive.")
     connection = _read_connection(database_path)
     try:
         rows = connection.execute(
@@ -308,23 +331,28 @@ def list_dashboard_alerts(
     username_query = username.strip().casefold()
     result: list[dict[str, Any]] = []
     for row in rows:
-        alert = json.loads(row["payload_json"])
-        if severities and alert["severity"] not in severities:
+        try:
+            alert = json.loads(row["payload_json"])
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise DashboardServiceError("A stored alert record is invalid.") from exc
+        if not isinstance(alert, dict):
+            raise DashboardServiceError("A stored alert record is invalid.")
+        if severities and alert.get("severity") not in severities:
             continue
-        if rule_ids and alert["rule_id"] not in rule_ids:
+        if rule_ids and alert.get("rule_id") not in rule_ids:
             continue
         linked = row["incident_id"] is not None
         if incident_association == "linked" and not linked:
             continue
         if incident_association == "unassigned" and linked:
             continue
-        first_day = str(alert["first_observed"])[:10]
-        last_day = str(alert["last_observed"])[:10]
+        first_day = str(alert.get("first_observed", ""))[:10]
+        last_day = str(alert.get("last_observed", ""))[:10]
         if observed_from and last_day < observed_from.isoformat():
             continue
         if observed_to and first_day > observed_to.isoformat():
             continue
-        entity_text = json.dumps(alert["grouping_context"], sort_keys=True).casefold()
+        entity_text = json.dumps(alert.get("grouping_context", {}), sort_keys=True).casefold()
         if host_query and host_query not in entity_text:
             continue
         if username_query and username_query not in entity_text:
@@ -333,12 +361,12 @@ def list_dashboard_alerts(
         alert["incident_reference"] = row["incident_reference"]
         searchable = " ".join(
             (
-                alert["alert_id"],
-                alert["rule_id"],
-                alert["rule_title"],
-                alert["rationale"],
-                alert["first_observed"],
-                alert["last_observed"],
+                str(alert.get("alert_id", "")),
+                str(alert.get("rule_id", "")),
+                str(alert.get("rule_title", "")),
+                str(alert.get("rationale", "")),
+                str(alert.get("first_observed", "")),
+                str(alert.get("last_observed", "")),
                 entity_text,
             )
         ).casefold()
