@@ -258,8 +258,8 @@ def overview(db: Path) -> None:
                 f"{i['reference']} · {i['title']}": i["incident_id"]
                 for i in summary["recent_incidents"]
             }
-            chosen = st.selectbox("Open a recent incident", list(choices))
-            if st.button("Investigate selected incident", type="primary"):
+            chosen = st.selectbox("Open a recent incident", list(choices), key="overview_incident_choice")
+            if st.button("Investigate selected incident", type="primary", key="overview_investigate_incident"):
                 _queue_navigation("Incident explorer", choices[chosen])
                 st.rerun()
         else:
@@ -572,8 +572,8 @@ def incident_explorer(db: Path) -> None:
     labels = list(options)
     previous = st.session_state.get("selected_incident")
     default = next((i for i, label in enumerate(labels) if options[label] == previous), 0)
-    chosen = st.selectbox("Select an incident", labels, index=default)
-    if st.button("Open investigation workspace", type="primary"):
+    chosen = st.selectbox("Select an incident", labels, index=default, key="explorer_incident_choice")
+    if st.button("Open investigation workspace", type="primary", key="open_investigation_workspace"):
         selected_id = options[chosen]
         st.session_state["selected_incident"] = selected_id
         st.session_state["opened_incident"] = selected_id
@@ -651,7 +651,7 @@ def alerts_page(db: Path) -> None:
         hide_index=True,
     )
     by_id = {item["alert_id"]: item for item in alerts}
-    chosen = st.selectbox("Inspect alert", list(by_id))
+    chosen = st.selectbox("Inspect alert", list(by_id), key="alerts_inspect_alert")
     alert = by_id[chosen]
     st.subheader(f"{alert['rule_id']} · {alert['rule_title']}")
     st.caption(f"{alert['alert_id']} · {severity_label(alert['severity'])}")
@@ -674,7 +674,7 @@ def alerts_page(db: Path) -> None:
                 else:
                     st.warning("Source event unavailable; reference retained.")
         st.caption(f"Incident: {alert.get('incident_reference')} · {alert['incident_id']}")
-        if st.button("Open associated incident"):
+        if st.button("Open associated incident", key="open_associated_incident"):
             _queue_navigation("Incident explorer", alert["incident_id"])
             st.rerun()
     else:
