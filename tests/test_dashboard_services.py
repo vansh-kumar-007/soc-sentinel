@@ -152,6 +152,7 @@ def test_public_malformed_evidence_json_fails_with_safe_dashboard_error(tmp_path
     with pytest.raises(DashboardServiceError, match="stored source evidence is invalid"):
         get_incident_details(path, incident["incident_id"])
 
+
 def test_alert_and_evidence_detail_includes_correlation_provenance(tmp_path: Path) -> None:
     path, _ = seeded(tmp_path)
     alerts = list_dashboard_alerts(path)
