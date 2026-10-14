@@ -13,7 +13,7 @@ from typing import Any
 from soc_sentinel.correlation import load_correlation_policy
 from soc_sentinel.db import insert_events
 from soc_sentinel.detection.engine import evaluate_events
-from soc_sentinel.detection.rules import load_rules
+from soc_sentinel.detection.rules import Severity, load_rules
 from soc_sentinel.incidents import (
     Incident,
     IncidentError,
@@ -193,8 +193,6 @@ def list_dashboard_incidents(
     invalid_statuses = (statuses or set()) - {item.value for item in IncidentStatus}
     if invalid_statuses:
         raise DashboardServiceError("Unsupported incident status filter.")
-    from soc_sentinel.detection.rules import Severity
-
     invalid_severities = (severities or set()) - {item.value for item in Severity}
     if invalid_severities:
         raise DashboardServiceError("Unsupported incident severity filter.")
