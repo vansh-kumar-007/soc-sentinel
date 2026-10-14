@@ -70,6 +70,8 @@ def _queue_navigation(page: str, incident_id: str | None = None) -> None:
         st.session_state["selected_incident"] = incident_id
         st.session_state["opened_incident"] = incident_id
     st.session_state["pending_navigation"] = page
+
+
 CSS = """
 <style>
 .block-container{padding-top:1.5rem;padding-bottom:2.5rem;max-width:1500px}
