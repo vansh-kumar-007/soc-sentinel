@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import date
 import os
 import sqlite3
 import tempfile
+from datetime import date
 from pathlib import Path
 from typing import Any
 
