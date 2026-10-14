@@ -280,8 +280,8 @@ def get_incident_details(database_path: str | Path, incident_id: str) -> dict[st
                     "source_available": True,
                     "provenance": "source_telemetry",
                 }
-    except sqlite3.Error as exc:
-        raise DashboardServiceError(f"Cannot retrieve source evidence: {exc}") from exc
+    except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise DashboardServiceError("The stored source evidence is invalid or unavailable.") from exc
     finally:
         connection.close()
     details["evidence_events"] = events
@@ -329,23 +329,28 @@ def list_dashboard_alerts(
     username_query = username.strip().casefold()
     result: list[dict[str, Any]] = []
     for row in rows:
-        alert = json.loads(row["payload_json"])
-        if severities and alert["severity"] not in severities:
+        try:
+            alert = json.loads(row["payload_json"])
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise DashboardServiceError("A stored alert record is invalid.") from exc
+        if not isinstance(alert, dict):
+            raise DashboardServiceError("A stored alert record is invalid.")
+        if severities and alert.get("severity") not in severities:
             continue
-        if rule_ids and alert["rule_id"] not in rule_ids:
+        if rule_ids and alert.get("rule_id") not in rule_ids:
             continue
         linked = row["incident_id"] is not None
         if incident_association == "linked" and not linked:
             continue
         if incident_association == "unassigned" and linked:
             continue
-        first_day = str(alert["first_observed"])[:10]
-        last_day = str(alert["last_observed"])[:10]
+        first_day = str(alert.get("first_observed", ""))[:10]
+        last_day = str(alert.get("last_observed", ""))[:10]
         if observed_from and last_day < observed_from.isoformat():
             continue
         if observed_to and first_day > observed_to.isoformat():
             continue
-        entity_text = json.dumps(alert["grouping_context"], sort_keys=True).casefold()
+        entity_text = json.dumps(alert.get("grouping_context", {}), sort_keys=True).casefold()
         if host_query and host_query not in entity_text:
             continue
         if username_query and username_query not in entity_text:
@@ -354,12 +359,12 @@ def list_dashboard_alerts(
         alert["incident_reference"] = row["incident_reference"]
         searchable = " ".join(
             (
-                alert["alert_id"],
-                alert["rule_id"],
-                alert["rule_title"],
-                alert["rationale"],
-                alert["first_observed"],
-                alert["last_observed"],
+                str(alert.get("alert_id", "")),
+                str(alert.get("rule_id", "")),
+                str(alert.get("rule_title", "")),
+                str(alert.get("rationale", "")),
+                str(alert.get("first_observed", "")),
+                str(alert.get("last_observed", "")),
                 entity_text,
             )
         ).casefold()
