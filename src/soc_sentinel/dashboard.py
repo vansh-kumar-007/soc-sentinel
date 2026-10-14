@@ -1017,7 +1017,7 @@ def _main() -> None:
             st.markdown("**Storage**")
             st.caption(str(DB_PATH))
             st.caption("Local SQLite · no external services")
-        if st.button("Refresh current data", use_container_width=True):
+        if st.button("Refresh current data", use_container_width=True, key="refresh_current_data"):
             st.rerun()
         st.caption("View refreshed: " + st.session_state["last_rendered_at"])
     if is_public:
