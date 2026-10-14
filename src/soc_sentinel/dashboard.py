@@ -6,6 +6,7 @@ Run: streamlit run src/soc_sentinel/dashboard.py --server.address 127.0.0.1
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 import sqlite3
 import tempfile
@@ -32,6 +33,7 @@ from soc_sentinel.incidents import IncidentError
 from soc_sentinel.operating_mode import PUBLIC_DEMO, OperatingModeError, operating_mode
 
 st: Any = importlib.import_module("streamlit")
+logger = logging.getLogger(__name__)
 
 DB_PATH = Path(
     os.environ.get("SOC_SENTINEL_DB", str(PROJECT_ROOT / "data" / "soc-sentinel-demo.sqlite3"))
@@ -60,6 +62,16 @@ PAGES = [
     "Synthetic lab",
     "Detection evaluation",
 ]
+
+
+def _queue_navigation(page: str, incident_id: str | None = None) -> None:
+    """Apply navigation before widgets instantiate, preserving the requested incident."""
+    if incident_id is not None:
+        st.session_state["selected_incident"] = incident_id
+        st.session_state["opened_incident"] = incident_id
+    st.session_state["pending_navigation"] = page
+
+
 CSS = """
 <style>
 .block-container{padding-top:1.5rem;padding-bottom:2.5rem;max-width:1500px}
@@ -102,6 +114,29 @@ def empty(title: str, text: str) -> None:
 def short(value: Any, limit: int = 110) -> str:
     text = str(value or "")
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def render_evidence_event(event: dict[str, Any], incident_label: str) -> None:
+    """Render core source-event fields first and retain the complete raw payload."""
+    action_outcome = " / ".join(
+        value for value in (event.get("action"), event.get("outcome")) if value
+    )
+    fields = [
+        ("Timestamp (UTC)", event.get("timestamp")),
+        ("Event type", event.get("event_type")),
+        ("Host", event.get("host_id")),
+        ("User", event.get("username")),
+        ("Action / outcome", action_outcome),
+        ("Linked incident", incident_label),
+    ]
+    for offset in range(0, len(fields), 3):
+        columns = st.columns(3)
+        for column, (label, value) in zip(columns, fields[offset : offset + 3], strict=True):
+            with column:
+                st.caption(label)
+                st.write(value if value not in (None, "") else "Not recorded")
+    with st.expander("Raw evidence JSON"):
+        st.json(event)
 
 
 def incident_table(items: list[dict[str, Any]]) -> None:
@@ -178,11 +213,19 @@ def overview(db: Path) -> None:
             st.dataframe(summary["top_users"], hide_index=True, use_container_width=True)
     with right:
         st.subheader("Incident creation activity")
-        if summary["activity"]:
-            st.line_chart(
+        activity = [
+            row
+            for row in summary["activity"]
+            if isinstance(row.get("date"), str)
+            and len(row["date"]) == 10
+            and isinstance(row.get("incidents"), int)
+            and row["incidents"] > 0
+        ]
+        if activity:
+            st.bar_chart(
                 {
-                    "date": [row["date"] for row in summary["activity"]],
-                    "incidents": [row["incidents"] for row in summary["activity"]],
+                    "date": [date.fromisoformat(row["date"]) for row in activity],
+                    "incidents": [row["incidents"] for row in activity],
                 },
                 x="date",
                 y="incidents",
@@ -217,10 +260,13 @@ def overview(db: Path) -> None:
                 f"{i['reference']} · {i['title']}": i["incident_id"]
                 for i in summary["recent_incidents"]
             }
-            chosen = st.selectbox("Open a recent incident", list(choices))
-            if st.button("Investigate selected incident", type="primary"):
-                st.session_state["selected_incident"] = choices[chosen]
-                st.session_state["navigation"] = "Incident explorer"
+            chosen = st.selectbox(
+                "Open a recent incident", list(choices), key="overview_incident_choice"
+            )
+            if st.button(
+                "Investigate selected incident", type="primary", key="overview_investigate_incident"
+            ):
+                _queue_navigation("Incident explorer", choices[chosen])
                 st.rerun()
         else:
             empty(
@@ -298,21 +344,8 @@ def workspace(db: Path, incident_id: str) -> None:
                             st.caption(
                                 f"{event['timestamp']} · {event['source_id']} · source telemetry"
                             )
-                            st.json(
-                                {
-                                    key: event.get(key)
-                                    for key in (
-                                        "event_type",
-                                        "host_id",
-                                        "username",
-                                        "source_ip",
-                                        "destination_ip",
-                                        "action",
-                                        "outcome",
-                                        "process",
-                                        "attributes",
-                                    )
-                                }
+                            render_evidence_event(
+                                event, f"{inc['reference']} · {inc['incident_id']}"
                             )
                         else:
                             st.warning("Source event unavailable; evidence reference retained.")
@@ -545,12 +578,23 @@ def incident_explorer(db: Path) -> None:
     labels = list(options)
     previous = st.session_state.get("selected_incident")
     default = next((i for i, label in enumerate(labels) if options[label] == previous), 0)
-    chosen = st.selectbox("Select an incident", labels, index=default)
-    if st.button("Open investigation workspace", type="primary"):
-        st.session_state["selected_incident"] = options[chosen]
-    selected_id = st.session_state.get("selected_incident")
-    if selected_id in options.values():
-        workspace(db, selected_id)
+    chosen = st.selectbox(
+        "Select an incident", labels, index=default, key="explorer_incident_choice"
+    )
+    if st.button(
+        "Open investigation workspace", type="primary", key="open_investigation_workspace"
+    ):
+        selected_id = options[chosen]
+        st.session_state["selected_incident"] = selected_id
+        st.session_state["opened_incident"] = selected_id
+        st.success(f"Opened {chosen}. The investigation workspace is shown below.")
+    opened_id = st.session_state.get("opened_incident")
+    if opened_id == options[chosen]:
+        workspace(db, opened_id)
+    else:
+        st.info(
+            "Select an incident and choose Open investigation workspace to inspect its evidence and timeline."
+        )
 
 
 def alerts_page(db: Path) -> None:
@@ -619,7 +663,7 @@ def alerts_page(db: Path) -> None:
         hide_index=True,
     )
     by_id = {item["alert_id"]: item for item in alerts}
-    chosen = st.selectbox("Inspect alert", list(by_id))
+    chosen = st.selectbox("Inspect alert", list(by_id), key="alerts_inspect_alert")
     alert = by_id[chosen]
     st.subheader(f"{alert['rule_id']} · {alert['rule_title']}")
     st.caption(f"{alert['alert_id']} · {severity_label(alert['severity'])}")
@@ -635,13 +679,15 @@ def alerts_page(db: Path) -> None:
                 st.code(event_id)
                 if event:
                     st.caption(f"{event['timestamp']} · {event['source_id']}")
-                    st.json(event)
+                    render_evidence_event(
+                        event,
+                        f"{alert.get('incident_reference') or 'Incident'} · {alert['incident_id']}",
+                    )
                 else:
                     st.warning("Source event unavailable; reference retained.")
         st.caption(f"Incident: {alert.get('incident_reference')} · {alert['incident_id']}")
-        if st.button("Open associated incident"):
-            st.session_state["selected_incident"] = alert["incident_id"]
-            st.session_state["navigation"] = "Incident explorer"
+        if st.button("Open associated incident", key="open_associated_incident"):
+            _queue_navigation("Incident explorer", alert["incident_id"])
             st.rerun()
     else:
         st.warning("No incident assignment is stored for this alert.")
@@ -716,7 +762,13 @@ def synthetic_lab(db: Path) -> None:
             OSError,
             ValueError,
         ) as exc:
-            st.error(f"Pipeline failed: {exc}")
+            logger.exception("Synthetic lab pipeline failed")
+            if operating_mode() == PUBLIC_DEMO:
+                st.error(
+                    "The isolated synthetic preview failed; no public or analyst data was changed."
+                )
+            else:
+                st.error(f"Pipeline failed: {exc}")
     result = st.session_state.get("pipeline_result")
     if result:
         cols = st.columns(4)
@@ -761,8 +813,7 @@ def synthetic_lab(db: Path) -> None:
             }
             selected = st.selectbox("Open a pipeline incident", list(choices))
             if st.button("Investigate pipeline result"):
-                st.session_state["selected_incident"] = choices[selected]
-                st.session_state["navigation"] = "Incident explorer"
+                _queue_navigation("Incident explorer", choices[selected])
                 st.rerun()
         st.caption(
             "Public previews are isolated and discarded after execution. Local repeated runs are idempotent for stable event/alert IDs and incident relationships."
@@ -782,7 +833,13 @@ def evaluation_page() -> None:
     try:
         report = evaluate_dataset(dataset_path, rules_path)
     except (OSError, ValueError) as exc:
-        st.error(f"Evaluation could not complete: {exc}")
+        logger.exception("Evaluation page could not be loaded")
+        if operating_mode() == PUBLIC_DEMO:
+            st.error(
+                "Detection evaluation could not be loaded. Details were recorded in server logs."
+            )
+        else:
+            st.error(f"Evaluation could not complete: {exc}")
         return
 
     st.warning(
@@ -920,7 +977,7 @@ def evaluation_page() -> None:
     )
 
 
-def main() -> None:
+def _main() -> None:
     st.set_page_config(page_title="SOC Sentinel", page_icon="🛡️", layout="wide")
     st.markdown(CSS, unsafe_allow_html=True)
     if "SOC_SENTINEL_MODE" not in os.environ:
@@ -948,6 +1005,10 @@ def main() -> None:
             )
             return
     st.session_state["last_rendered_at"] = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+    pending_navigation = st.session_state.pop("pending_navigation", None)
+    if pending_navigation in PAGES:
+        # Apply this before st.radio instantiates the navigation widget.
+        st.session_state["navigation"] = pending_navigation
     with st.sidebar:
         st.markdown("## 🛡️ SOC Sentinel")
         st.caption("SECURITY OPERATIONS WORKSTATION")
@@ -972,7 +1033,7 @@ def main() -> None:
             st.markdown("**Storage**")
             st.caption(str(DB_PATH))
             st.caption("Local SQLite · no external services")
-        if st.button("Refresh current data", use_container_width=True):
+        if st.button("Refresh current data", use_container_width=True, key="refresh_current_data"):
             st.rerun()
         st.caption("View refreshed: " + st.session_state["last_rendered_at"])
     if is_public:
@@ -1010,8 +1071,21 @@ def main() -> None:
         sqlite3.Error,
         OSError,
     ):
+        logger.exception("Dashboard page failed safely while rendering %s", nav)
         st.error("Dashboard data could not be loaded or the requested operation was rejected.")
         st.caption("Refresh the view or verify the local SQLite database and operating mode.")
+
+
+def main() -> None:
+    """Keep unexpected failures out of the public UI while retaining server diagnostics."""
+    try:
+        _main()
+    except Exception:
+        logger.exception("Unexpected SOC Sentinel dashboard failure")
+        st.error(
+            "An unexpected dashboard error occurred. Details were recorded in server logs; "
+            "refresh and try again."
+        )
 
 
 if __name__ == "__main__":
