@@ -496,7 +496,7 @@ def workspace(db: Path, incident_id: str) -> None:
                         )
                     st.success(f"Status saved: {updated.status.value} · version {updated.version}")
                     st.rerun()
-                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
+                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError):
                     logger.exception("Incident status transition failed")
                     st.error("Status was not changed. Reload the incident and retry if appropriate.")
                     st.caption("Details were recorded in server logs.")
