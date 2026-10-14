@@ -427,7 +427,7 @@ def workspace(db: Path, incident_id: str) -> None:
                     )
                     st.success(f"Note saved at {saved['created_at']}.")
                     st.rerun()
-                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
+                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError):
                     logger.exception("Investigation note save failed")
                     st.error("Note was not saved. Details were recorded in server logs.")
                     st.caption("Reload the incident if its version changed.")
