@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -172,7 +173,6 @@ def test_public_initialization_error_does_not_disclose_traceback_or_source_path(
 ) -> None:
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
-    import tempfile
 
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
     monkeypatch.setenv("SOC_SENTINEL_MODE", PUBLIC_DEMO)
