@@ -258,8 +258,12 @@ def overview(db: Path) -> None:
                 f"{i['reference']} · {i['title']}": i["incident_id"]
                 for i in summary["recent_incidents"]
             }
-            chosen = st.selectbox("Open a recent incident", list(choices), key="overview_incident_choice")
-            if st.button("Investigate selected incident", type="primary", key="overview_investigate_incident"):
+            chosen = st.selectbox(
+                "Open a recent incident", list(choices), key="overview_incident_choice"
+            )
+            if st.button(
+                "Investigate selected incident", type="primary", key="overview_investigate_incident"
+            ):
                 _queue_navigation("Incident explorer", choices[chosen])
                 st.rerun()
         else:
@@ -572,8 +576,12 @@ def incident_explorer(db: Path) -> None:
     labels = list(options)
     previous = st.session_state.get("selected_incident")
     default = next((i for i, label in enumerate(labels) if options[label] == previous), 0)
-    chosen = st.selectbox("Select an incident", labels, index=default, key="explorer_incident_choice")
-    if st.button("Open investigation workspace", type="primary", key="open_investigation_workspace"):
+    chosen = st.selectbox(
+        "Select an incident", labels, index=default, key="explorer_incident_choice"
+    )
+    if st.button(
+        "Open investigation workspace", type="primary", key="open_investigation_workspace"
+    ):
         selected_id = options[chosen]
         st.session_state["selected_incident"] = selected_id
         st.session_state["opened_incident"] = selected_id
@@ -582,7 +590,9 @@ def incident_explorer(db: Path) -> None:
     if opened_id == options[chosen]:
         workspace(db, opened_id)
     else:
-        st.info("Select an incident and choose Open investigation workspace to inspect its evidence and timeline.")
+        st.info(
+            "Select an incident and choose Open investigation workspace to inspect its evidence and timeline."
+        )
 
 
 def alerts_page(db: Path) -> None:
@@ -752,7 +762,9 @@ def synthetic_lab(db: Path) -> None:
         ) as exc:
             logger.exception("Synthetic lab pipeline failed")
             if operating_mode() == PUBLIC_DEMO:
-                st.error("The isolated synthetic preview failed; no public or analyst data was changed.")
+                st.error(
+                    "The isolated synthetic preview failed; no public or analyst data was changed."
+                )
             else:
                 st.error(f"Pipeline failed: {exc}")
     result = st.session_state.get("pipeline_result")
@@ -821,7 +833,9 @@ def evaluation_page() -> None:
     except (OSError, ValueError) as exc:
         logger.exception("Evaluation page could not be loaded")
         if operating_mode() == PUBLIC_DEMO:
-            st.error("Detection evaluation could not be loaded. Details were recorded in server logs.")
+            st.error(
+                "Detection evaluation could not be loaded. Details were recorded in server logs."
+            )
         else:
             st.error(f"Evaluation could not complete: {exc}")
         return
