@@ -48,6 +48,7 @@ def _database_snapshot(database_path: Path) -> tuple[tuple[object, ...], ...]:
 def test_overview_navigation_opens_the_intended_incident_without_widget_exception(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "local-analyst")
     database_path = tmp_path / "soc-sentinel-demo.sqlite3"
     seeded = run_synthetic_investigation(database_path)
     app = _render_app(monkeypatch, database_path)
@@ -74,6 +75,7 @@ def test_overview_navigation_opens_the_intended_incident_without_widget_exceptio
 def test_alert_navigation_opens_the_associated_incident_without_widget_exception(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "local-analyst")
     database_path = tmp_path / "soc-sentinel-demo.sqlite3"
     run_synthetic_investigation(database_path)
     app = _render_app(monkeypatch, database_path)
@@ -108,6 +110,7 @@ def test_open_investigation_workspace_shows_each_incident_and_preserves_its_data
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "local-analyst")
     database_path = tmp_path / "soc-sentinel-demo.sqlite3"
     seeded = run_synthetic_investigation(database_path)
     target_id = seeded["incidents"][incident_index]["incident_id"]
@@ -136,7 +139,7 @@ def test_open_investigation_workspace_shows_each_incident_and_preserves_its_data
         "Audit",
         "Manage",
     }
-    _keyed(app.button, "Refresh current data").click().run()
+    _keyed(app.button, "refresh_current_data").click().run()
     assert not app.exception
     assert app.session_state["selected_incident"] == target_id
     assert app.session_state["opened_incident"] == target_id
@@ -146,6 +149,7 @@ def test_open_investigation_workspace_shows_each_incident_and_preserves_its_data
 def test_overview_activity_chart_uses_persisted_dates_and_empty_state_is_honest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setenv("SOC_SENTINEL_MODE", "local-analyst")
     populated_path = tmp_path / "populated.sqlite3"
     run_synthetic_investigation(populated_path)
     populated_summary = get_dashboard_summary(populated_path)
@@ -172,7 +176,7 @@ def test_public_initialization_error_does_not_disclose_traceback_or_source_path(
 
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
     monkeypatch.setenv("SOC_SENTINEL_MODE", PUBLIC_DEMO)
-    configured_database = tmp_path / "soc-sentinel-public-demo.sqlite3"
+    configured_database = tmp_path / f"soc-sentinel-public-demo-{os.getpid()}.sqlite3"
     configured_database.write_text("not a SQLite database", encoding="utf-8")
     monkeypatch.setenv("SOC_SENTINEL_DB", str(tmp_path / "not-used.sqlite3"))
     app_path = Path(__file__).parents[1] / "src" / "soc_sentinel" / "dashboard.py"
