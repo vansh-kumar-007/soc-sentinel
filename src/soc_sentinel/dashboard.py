@@ -516,7 +516,7 @@ def workspace(db: Path, incident_id: str) -> None:
                         f"Assignment saved: {updated.assigned_analyst or 'unassigned'} · version {updated.version}"
                     )
                     st.rerun()
-                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError) as exc:
+                except (IncidentError, DashboardServiceError, sqlite3.Error, OSError):
                     logger.exception("Incident assignment failed")
                     st.error("Assignment was not changed. Details were recorded in server logs.")
 
