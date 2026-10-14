@@ -281,7 +281,9 @@ def get_incident_details(database_path: str | Path, incident_id: str) -> dict[st
                     "provenance": "source_telemetry",
                 }
     except (sqlite3.Error, json.JSONDecodeError, TypeError, ValueError) as exc:
-        raise DashboardServiceError("The stored source evidence is invalid or unavailable.") from exc
+        raise DashboardServiceError(
+            "The stored source evidence is invalid or unavailable."
+        ) from exc
     finally:
         connection.close()
     details["evidence_events"] = events
