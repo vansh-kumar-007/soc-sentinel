@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 import os
 import sqlite3
 import tempfile
@@ -176,11 +177,9 @@ def test_incident_explorer_rejects_inverted_date_range_without_traceback(
     database_path = tmp_path / "soc-sentinel-demo.sqlite3"
     run_synthetic_investigation(database_path)
     app = _render_app(monkeypatch, database_path)
-    from datetime import date
-
+    app.radio[0].set_value("Incident explorer").run()
     app.date_input[0].set_value(date(2026, 10, 12)).run()
     app.date_input[1].set_value(date(2026, 10, 11)).run()
-    app.radio[0].set_value("Incident explorer").run()
     assert not app.exception
     assert any("must be on or before" in item.value for item in app.warning)
 
