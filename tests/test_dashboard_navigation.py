@@ -169,7 +169,6 @@ def test_overview_activity_chart_uses_persisted_dates_and_empty_state_is_honest(
     assert any("No activity recorded" in item.value for item in empty_app.markdown)
 
 
-
 def test_incident_explorer_rejects_inverted_date_range_without_traceback(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
